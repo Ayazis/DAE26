@@ -2,21 +2,21 @@
   --bg:#F4F5F6; --surface:#FFFFFF; --ink:#1A1D21; --muted:#5E6670; --line:#DDE1E5; --hl:#FFE88A;
   --red:#C8392B; --blue:#2A66B8; --green:#6E9A12; --yellow:#D39A00; --chip:#E7EAED;
   --pick:#D6247A; --mapbg:#EEF1F3;
-  --floor:#FFFFFF; --wall:#8A94A0; --room:#FFFFFF; --patio:#E3EDD8; --grey:#C9CED4; --darkarea:#5E7270; --hall:#F0D9D3; --hitfill:#FFE45C; --iconbg:#1E3557;
+  --floor:#FFFFFF; --wall:#8A94A0; --room:#FFFFFF; --patio:#E3EDD8; --grey:#C9CED4; --darkarea:#5E7270; --hall:#F0D9D3; --hitfill:#FFE45C; --iconbg:#1E3557; --star:#E0A100;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
     --bg:#13161A; --surface:#1B1F24; --ink:#E9ECEF; --muted:#9AA3AD; --line:#2C323A; --hl:#6B5A10;
     --red:#E0604F; --blue:#5C92DE; --green:#A5C93A; --yellow:#E8B82E; --chip:#262B32; --pick:#FF4FA3; --mapbg:#101316;
-    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85;
+    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933;
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#13161A; --surface:#1B1F24; --ink:#E9ECEF; --muted:#9AA3AD; --line:#2C323A; --hl:#6B5A10;
   --red:#E0604F; --blue:#5C92DE; --green:#A5C93A; --yellow:#E8B82E; --chip:#262B32; --pick:#FF4FA3; --mapbg:#101316;
-    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85;
+    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933;
 }
 body{background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,sans-serif;font-size:15px;line-height:1.45;padding-inline:16px;padding-block:0 32px}
 .wrap{max-width:1100px;margin:0 auto}
@@ -94,6 +94,26 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .brands .none{color:var(--muted);font-style:italic;font-weight:400}
 .also{font-size:12.5px;color:var(--muted);margin-top:2px}
 .also button{font:inherit;border:0;background:none;color:var(--blue);padding:0;cursor:pointer;text-decoration:underline}
+/* favorites */
+.star{fill:var(--star);text-anchor:end;dominant-baseline:hanging;display:none;pointer-events:none;paint-order:stroke;stroke:var(--room);stroke-width:2px}
+.rbrand{fill:var(--muted);text-anchor:middle;dominant-baseline:central;font-weight:500;display:none;pointer-events:none}
+.room.fav .star{display:inline}
+.room.fav.has-brand .rbrand{display:inline}
+.room.fav.has-brand .rlabel{transform:translateY(-.3em);transform-box:fill-box}
+.room.fav .rbox{stroke:var(--star);stroke-width:3}
+.tip .favb{font:inherit;font-size:22px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
+.tip .favb[aria-pressed="true"]{color:var(--star)}
+.tip .favb+.x{margin-left:4px}
+.note{display:block;width:100%;box-sizing:border-box;margin-top:10px;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);resize:vertical}
+.side{margin-top:18px}
+.side h2{font-family:"Barlow Condensed",sans-serif;font-size:22px;margin:0 0 8px}
+#favcount{color:var(--muted);font-weight:500}
+.favs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.favs .empty{color:var(--muted)}
+.favs button{width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--zc);border-radius:8px;padding:8px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.favs .fr{font-weight:700}
+.favs .fb{font-size:13px;color:var(--muted)}
+.favs .fn{font-size:13px;font-style:italic}
 mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 footer{color:var(--muted);font-size:12.5px;margin-top:22px}
 footer a{color:var(--blue)}

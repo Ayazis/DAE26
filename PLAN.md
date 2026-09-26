@@ -19,9 +19,9 @@ Some of this already exists in `2026/` (search, zone filter, zoom/pan, light/dar
 - **Done when:** every room can be clicked on desktop and phone, and every link works.
 
 ## Phase 2: Personalisation
-- [ ] Star a room from its tooltip; starred rooms get a star marker and their brand label on the map.
-- [ ] Favorites panel sorted by zone and room; tapping an entry jumps to that room on the map.
-- [ ] Personal notes per room.
+- [x] Star a room from its tooltip; starred rooms get a gold star, a gold outline and their headline brand (for example "Aavik +3") on the map.
+- [x] Favorites list below the map, sorted by zone and room; tapping an entry zooms to that room and opens its tooltip.
+- [x] Personal notes per room (in the tooltip, shown in the favorites list).
 - **Done when:** favorites and notes survive a page reload.
 
 ## Phase 3: Find things

@@ -7,6 +7,16 @@ const store = (()=>{
   const save=()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }catch(e){} };
   return { get:k=>d[k], set:(k,v)=>{ d[k]=v; save(); } };
 })();
+// Per-room user state: {fav, note, visited, rating}
+const roomState = r => (store.get("rooms")||{})[r] || {};
+function setRoom(r, patch){
+  const all = {...(store.get("rooms")||{})};
+  const next = {...(all[r]||{}), ...patch};
+  Object.keys(next).forEach(k=>{ if(next[k]===false||next[k]===""||next[k]==null||next[k]===0) delete next[k]; });
+  if(Object.keys(next).length) all[r]=next; else delete all[r];
+  store.set("rooms", all);
+  paintRoom(r); renderFavs();
+}
 
 const ROOMS = {}; // name -> {z, exs}
 ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>{ ROOMS[r] = {z, exs}; }));
@@ -53,6 +63,13 @@ PLAN.slants.forEach(([z,pts])=>el("polygon",{points:pts,class:"corr z-"+z},L.cor
 
 // Rooms
 const spots = {};
+// First brand of the room's first exhibitor, trimmed to fit
+function headline(r,maxChars){
+  const e=ROOMS[r].exs[0], b=(EX[e]&&EX[e][0])||e;
+  const more = ROOMS[r].exs.reduce((n,x)=>n+((EX[x]||[]).length||1),0)-1;
+  let s = b + (more>0?" +"+more:"");
+  return s.length>maxChars ? s.slice(0,Math.max(3,maxChars-1))+"…" : s;
+}
 const big = r => !isNum(r);
 Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
   const x=px*W/100, y=py*H/100, w=pw*W/100, h=ph*H/100;
@@ -66,9 +83,15 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
   const t = el("text",{x:cx,y:cy,class:"rlabel","font-size":fs.toFixed(1),transform:vertical?`rotate(-90 ${cx} ${cy})`:""},g);
   t.textContent=label;
   if(info){
+    // Shown only for favorites: star in the corner and the headline brand under the label
+    const st=el("text",{x:x+w-2,y:y+2,class:"star","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g); st.textContent="★";
+    if(!vertical && h>=fs*2.1){
+      el("text",{x:cx,y:cy+fs*0.62,class:"rbrand","font-size":Math.max(6,Math.min(fs*.55,w/9)).toFixed(1)},g).textContent=headline(r,w/(Math.max(6,Math.min(fs*.55,w/9))*0.55));
+    }
     g.setAttribute("tabindex","0"); g.setAttribute("role","button");
     g.setAttribute("aria-label", rname(r)+", "+info.exs.join(", "));
     spots[r]={g,x,y,w,h};
+    if(g.querySelector(".rbrand")) g.classList.add("has-brand");
   }
 });
 
@@ -217,8 +240,13 @@ function select(r, move){
     return `<div class="ex"><div class="exn"><span>${hl(e,q)}</span>${link}</div><div class="brands">${b}</div>${also}</div>`;
   }).join("");
   tip.style.setProperty("--zc", z.color);
+  const st=roomState(r);
   tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>
-    <button type="button" class="x" aria-label="Close">×</button></div><div class="tb">${blocks}</div>`;
+    <button type="button" class="favb" aria-pressed="${!!st.fav}" aria-label="Favorite" title="Favorite">${st.fav?"★":"☆"}</button>
+    <button type="button" class="x" aria-label="Close">×</button></div><div class="tb">${blocks}
+    <textarea class="note" rows="2" placeholder="Your notes for this room…" aria-label="Notes">${esc(st.note||"")}</textarea></div>`;
+  tip.querySelector(".favb").addEventListener("click",e=>{ const on=!roomState(r).fav; setRoom(r,{fav:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?"★":"☆"; });
+  tip.querySelector(".note").addEventListener("input",e=>setRoom(r,{note:e.target.value}));
   tip.querySelector(".x").addEventListener("click",closeTip);
   tip.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go,true)));
   tip.hidden=false;
@@ -275,7 +303,7 @@ function refresh(){
     h.innerHTML = `<span class="count">${hits.length} room${hits.length>1?"s":""}:</span>` + hits.map(r=>`<button type="button" data-go="${esc(r)}">${esc(rname(r))}</button>`).join("");
     h.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go,true)));
   }
-  if(sel) select(sel,false);
+  if(sel && !tip.contains(document.activeElement)) select(sel,false);
   return hits;
 }
 let t;
@@ -289,6 +317,28 @@ const zbox=document.getElementById("zones");
   zbox.appendChild(b);
 });
 zbox.querySelector("button").setAttribute("aria-pressed","true");
+
+/* ---------- favorites ---------- */
+function paintRoom(r){
+  const s=spots[r]; if(!s) return; const st=roomState(r);
+  s.g.classList.toggle("fav", !!st.fav);
+  s.g.classList.toggle("noted", !!st.note);
+}
+const ORDER = {}; ZONES.forEach((z,zi)=>z.rooms.forEach(([r],ri)=>ORDER[r]=zi*1000+(isNum(r)?+r:500+ri)));
+function renderFavs(){
+  const list=document.getElementById("favs");
+  const rooms=Object.keys(store.get("rooms")||{}).filter(r=>ROOMS[r] && roomState(r).fav).sort((a,b)=>ORDER[a]-ORDER[b]);
+  document.getElementById("favcount").textContent = rooms.length ? `(${rooms.length})` : "";
+  if(!rooms.length){ list.innerHTML=`<li class="empty">Tap ☆ in a room's popup to add it here.</li>`; return; }
+  list.innerHTML = rooms.map(r=>{ const {z,exs}=ROOMS[r], st=roomState(r);
+    const brands=exs.flatMap(e=>EX[e]&&EX[e].length?EX[e]:[e]);
+    return `<li style="--zc:${z.color}"><button type="button" data-go="${esc(r)}"><span class="fr">${esc(rname(r))}</span>
+      <span class="fb">${esc(brands.slice(0,6).join(", "))}${brands.length>6?` +${brands.length-6}`:""}</span>
+      ${st.note?`<span class="fn">${esc(st.note)}</span>`:""}</button></li>`; }).join("");
+  list.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ select(b.dataset.go,true); document.getElementById("mapbox").scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"}); }));
+}
+Object.keys(spots).forEach(paintRoom);
+renderFavs();
 
 setOrig(!!store.get("orig"));
 applyVB();
