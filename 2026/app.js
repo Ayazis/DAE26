@@ -85,7 +85,7 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
   const t = el("text",{x:cx,y:cy,class:"rlabel","font-size":fs.toFixed(1),transform:vertical?`rotate(-90 ${cx} ${cy})`:""},g);
   t.textContent=label;
   if(info){
-    // Shown only for favorites: star in the corner and the headline brand under the label
+    // Headline brand under the label is always shown; star and check in the corner only for favorites and visited rooms
     el("text",{x:x+3,y:y+2,class:"check","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g).textContent="✓";
     const st=el("text",{x:x+w-2,y:y+2,class:"star","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g); st.textContent="★";
     if(!vertical && h>=fs*2.1){

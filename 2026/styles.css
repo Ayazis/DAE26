@@ -109,10 +109,9 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .also button{font:inherit;border:0;background:none;color:var(--blue);padding:0;cursor:pointer;text-decoration:underline}
 /* favorites */
 .star{fill:var(--star);text-anchor:end;dominant-baseline:hanging;display:none;pointer-events:none;paint-order:stroke;stroke:var(--room);stroke-width:2px}
-.rbrand{fill:var(--muted);text-anchor:middle;dominant-baseline:central;font-weight:500;display:none;pointer-events:none}
+.rbrand{fill:var(--muted);text-anchor:middle;dominant-baseline:central;font-weight:500;pointer-events:none}
 .room.fav .star{display:inline}
-.room.fav.has-brand .rbrand{display:inline}
-.room.fav.has-brand .rlabel{transform:translateY(-.3em);transform-box:fill-box}
+.room.has-brand .rlabel{transform:translateY(-.3em);transform-box:fill-box}
 .tip .favb{font:inherit;font-size:22px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
 .tip .favb[aria-pressed="true"]{color:var(--star)}
 .tip .favb+.x{margin-left:4px}
@@ -148,3 +147,13 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 footer{color:var(--muted);font-size:12.5px;margin-top:22px}
 footer a{color:var(--blue)}
+
+/* Desktop: map on the right filling the window, favorites and tools in a left column. Mobile keeps everything stacked under the map. */
+@media (min-width:900px){
+  .wrap{max-width:1500px}
+  .layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+  .sidecol{order:-1;max-height:calc(100dvh - 190px);overflow-y:auto;padding-right:4px}
+  .sidecol .side:first-child{margin-top:0}
+  .mapbox{height:calc(100dvh - 190px);min-height:420px}
+  .hint{display:none}
+}

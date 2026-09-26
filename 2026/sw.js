@@ -1,5 +1,5 @@
-// Offline support: precache the app shell, then serve cache-first and refresh in the background.
-const CACHE = "dae26-v9";
+// Offline support: precache the app shell, then code (html/css/js) is network-first so updates arrive on the next load and never mix versions; images and fonts are cache-first.
+const CACHE = "dae26-v13";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "data.js", "plan.js", "plan.jpg",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable.png", "apple-touch-icon.png"];
 
@@ -18,6 +18,14 @@ self.addEventListener("fetch", e => {
   const same = url.origin === location.origin;
   const fonts = /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
   if (!same && !fonts) return; // exhibitor pages etc. go straight to the network
+  const code = same && (req.mode === "navigate" || /\.(js|css|html)$/.test(url.pathname) || url.pathname.endsWith("/"));
+  if (code) {
+    e.respondWith(caches.open(CACHE).then(async c => {
+      try { const res = await fetch(req, {cache: "no-cache"}); if (res.ok) c.put(req, res.clone()); return res; }
+      catch { return (await c.match(req, {ignoreSearch: true})) || (await c.match("index.html")) || Response.error(); }
+    }));
+    return;
+  }
   e.respondWith(caches.open(CACHE).then(async c => {
     const hit = await c.match(req, {ignoreSearch: same});
     const fresh = fetch(req).then(res => { if (res.ok || res.type === "opaque") c.put(req, res.clone()); return res; });
