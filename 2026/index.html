@@ -15,25 +15,28 @@
 <body>
 <div class="wrap">
   <header class="top">
-    <h1>Dutch Audio Event 2026 · Floor Map</h1>
+    <div class="titlerow">
+      <h1>Dutch Audio Event 2026 · Floor Map</h1>
+      <button type="button" id="theme" class="sw" role="switch" aria-checked="false" title="Switch between light and dark">Dark mode</button>
+    </div>
     <p class="sub">NH Koningshof Veldhoven, 10 &amp; 11 October. Tap a room to see its brands, or search for a brand to find its room.</p>
   </header>
 
   <div class="bar">
     <div class="row">
       <input id="q" type="search" placeholder="Find a brand, exhibitor, room or note…" autocomplete="off" aria-label="Search">
-      <div class="zoom" role="group" aria-label="Zoom">
-        <button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="zfit" aria-label="Fit whole plan">Fit</button><button type="button" id="zin" aria-label="Zoom in">+</button>
-      </div>
-      <button type="button" id="vec" class="tog" aria-pressed="true" title="Show or hide the drawn map">Map</button>
-      <button type="button" id="orig" class="tog" aria-pressed="false" title="Overlay the original floor plan image">Original</button>
-      <button type="button" id="theme" class="tog" title="Switch theme">Auto</button>
     </div>
-    <div class="zones" id="zones" role="group" aria-label="Filter rooms"></div>
     <div class="hits" id="hits" aria-live="polite"></div>
   </div>
 
   <div class="mapbox" id="mapbox">
+    <button type="button" id="full" class="tog fullbtn" aria-pressed="false" aria-label="Fullscreen" title="Fullscreen">⛶</button>
+    <div class="mapctl">
+      <div class="zones" id="zones" role="group" aria-label="Filter rooms"></div>
+      <div class="row">
+        <button type="button" id="hires" class="sw" role="switch" aria-checked="true" title="On: redrawn map. Off: original floor plan image">High res</button>
+      </div>
+    </div>
     <svg id="svg" role="group" aria-label="Floor plan of NH Koningshof with the four colour zones" preserveAspectRatio="xMidYMid meet"></svg>
     <div class="tip" id="tip" role="dialog" aria-live="polite" hidden></div>
   </div>

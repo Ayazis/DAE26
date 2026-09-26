@@ -1,5 +1,5 @@
 // Offline support: precache the app shell, then serve cache-first and refresh in the background.
-const CACHE = "dae26-v2";
+const CACHE = "dae26-v9";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "data.js", "plan.js", "plan.jpg",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable.png", "apple-touch-icon.png"];
 

@@ -1,3 +1,5 @@
+// Feature flags. zoneToggles: colour-zone filter buttons on the map (zone view logic stays, it just has no way to be triggered).
+const FEATURES = { zoneToggles: false };
 // All user data lives under one versioned localStorage key.
 const STORE_KEY = "daem-2026-v1";
 const store = (()=>{
@@ -76,9 +78,9 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
   const info = ROOMS[r];
   const g = el("g",{class:"room"+(info?" z-"+info.z.id:" empty")+(big(r)?" hall":""),"data-r":r},L.rooms);
   rect(x,y,w,h,"rbox",g);
-  const vertical = h>w*1.6 && w<50;
+  const vertical = !isNum(r) && h>w*1.6 && w<50; // room numbers always stay horizontal
   const label = isNum(r) ? r : r.replace(/ \(.*\)/,"").replace(/ foyer$/i," foyer");
-  const fs = Math.max(8, Math.min(isNum(r)?16:13, (vertical?h:w)/(label.length*0.62), (vertical?w:h)*0.55));
+  const fs = Math.max(isNum(r)?5:8, Math.min(isNum(r)?16:13, (vertical?h:w)/(label.length*0.62), (vertical?w:h)*0.55));
   const cx=x+w/2, cy=y+h/2;
   const t = el("text",{x:cx,y:cy,class:"rlabel","font-size":fs.toFixed(1),transform:vertical?`rotate(-90 ${cx} ${cy})`:""},g);
   t.textContent=label;
@@ -121,7 +123,7 @@ PLAN.entrances.forEach(([x,y,dir,label])=>{
 const ZNL={yellow:"gele zone",green:"groene zone",blue:"blauwe zone",red:"rode zone"};
 PLAN.badges.forEach(([z,x,y])=>{
   const g=el("g",{class:"badge z-"+z,transform:`translate(${x} ${y})`},L.icons);
-  el("rect",{x:-28,y:-19,width:56,height:38,rx:6},g);
+  el("rect",{x:-40,y:-19,width:80,height:38,rx:6},g);
   const t=el("text",{x:0,y:1},g); t.textContent=ZNL[z];
 });
 
@@ -217,16 +219,22 @@ svg.addEventListener("keydown", e=>{
 addEventListener("keydown", e=>{ if(e.key==="Escape") closeTip(); });
 new ResizeObserver(()=>applyVB()).observe(box);
 
-document.getElementById("zin").addEventListener("click",()=>{ const c={x:vb.x+vb.w/2,y:vb.y+vb.h/2}; zoomAt(1/1.5,c.x,c.y); });
-document.getElementById("zout").addEventListener("click",()=>{ const c={x:vb.x+vb.w/2,y:vb.y+vb.h/2}; zoomAt(1.5,c.x,c.y); });
-document.getElementById("zfit").addEventListener("click",fitView);
-const origBtn=document.getElementById("orig");
-function setOrig(on){ svg.classList.toggle("show-orig",on); origBtn.setAttribute("aria-pressed",on); store.set("orig",on); }
-origBtn.addEventListener("click",()=>{ const on=!svg.classList.contains("show-orig"); setOrig(on); if(!on && !vecOn()) setVec(true); });
-const vecBtn=document.getElementById("vec");
-const vecOn = () => !svg.classList.contains("no-vec");
-function setVec(on){ svg.classList.toggle("no-vec",!on); vecBtn.setAttribute("aria-pressed",on); store.set("novec",!on); if(!on) setOrig(true); }
-vecBtn.addEventListener("click",()=>setVec(!vecOn()));
+/* Fullscreen: real Fullscreen API where available, otherwise (iPhone) a fixed full-window overlay. */
+const fullBtn=document.getElementById("full");
+function setFull(on){
+  box.classList.toggle("full",on); fullBtn.setAttribute("aria-pressed",on);
+  document.body.style.overflow=on?"hidden":"";
+  if(on && box.requestFullscreen) box.requestFullscreen().catch(()=>{});
+  else if(!on && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  requestAnimationFrame(()=>applyZones(true));
+}
+fullBtn.addEventListener("click",()=>setFull(!box.classList.contains("full")));
+document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement && box.classList.contains("full")) setFull(false); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && box.classList.contains("full")) setFull(false); });
+/* High res = the redrawn map (default). Off = the original plan JPG, rooms stay tappable on top of it. */
+const hiBtn=document.getElementById("hires");
+function setHi(on){ svg.classList.toggle("show-orig",!on); svg.classList.toggle("no-vec",!on); hiBtn.setAttribute("aria-checked",on); store.set("hd",on); }
+hiBtn.addEventListener("click",()=>setHi(svg.classList.contains("show-orig")));
 
 
 /* ---------- tooltip ---------- */
@@ -326,11 +334,12 @@ let t;
 document.getElementById("q").addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(()=>{ const hits=refresh(); if(hits.length===1) select(hits[0],true); },120); });
 
 const zbox=document.getElementById("zones");
-[{id:"all",name:"All zones"}].concat(ZONES).forEach(z=>{
+if(FEATURES.zoneToggles) ZONES.forEach(z=>{
   const b=document.createElement("button"); b.type="button"; b.dataset.z=z.id;
   b.innerHTML=(z.color?`<span class="dot" style="background:${z.color}"></span>`:"")+z.name;
   b.addEventListener("click",()=>{
-    if(z.id==="all") zones.clear(); else zones.has(z.id) ? zones.delete(z.id) : zones.add(z.id);
+    if(!zones.size) ZONES.forEach(o=>zones.add(o.id)); // empty = all shown, so start from all four
+    zones.has(z.id) ? zones.delete(z.id) : zones.add(z.id);
     if(zones.size===ZONES.length) zones.clear();
     applyZones(true); refresh(); });
   zbox.appendChild(b);
@@ -345,7 +354,7 @@ ZONES.forEach(z=>{ const b={x1:1e9,y1:1e9,x2:-1e9,y2:-1e9};
 const clip = el("clipPath",{id:"zclip"}, el("defs",{},svg));
 let loose=null; // elements without a zone, with their centre point
 function applyZones(move){
-  zbox.querySelectorAll("[data-z]").forEach(x=>x.setAttribute("aria-pressed", x.dataset.z==="all" ? !zones.size : zones.has(x.dataset.z)));
+  zbox.querySelectorAll("[data-z]").forEach(x=>x.setAttribute("aria-pressed", !zones.size || zones.has(x.dataset.z)));
   svg.classList.toggle("zoned", zones.size>0);
   if(!loose){
     loose=[...svg.querySelectorAll(".l-areas>*, .l-labels>*, .l-icons>.icon, .l-icons>.entrance, .room.empty")].map(n=>{ const b=n.getBBox(), m=n.transform.baseVal.consolidate()?.matrix; // getBBox ignores the element's own transform
@@ -366,12 +375,6 @@ function applyZones(move){
   const pad=40; animateTo({x:b.x1-pad, y:b.y1-pad, w:b.x2-b.x1+2*pad, h:b.y2-b.y1+2*pad});
 }
 applyZones(false);
-[["fav","★ Favorites only"],["vis","Hide visited"]].forEach(([k,label])=>{
-  const b=document.createElement("button"); b.type="button"; b.className="flt"; b.textContent=label; b.setAttribute("aria-pressed","false");
-  b.addEventListener("click",()=>{ const on=b.getAttribute("aria-pressed")!=="true"; b.setAttribute("aria-pressed",on);
-    if(k==="fav") favOnly=on; else hideVisited=on; refresh(); });
-  zbox.appendChild(b);
-});
 
 /* ---------- favorites & progress ---------- */
 function paintRoom(r){
@@ -403,10 +406,10 @@ function renderFavs(){
 /* ---------- theme ---------- */
 const themeBtn=document.getElementById("theme");
 function setTheme(t){
-  if(t==="auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme",t);
-  themeBtn.textContent = {auto:"Auto",light:"Light",dark:"Dark"}[t]; themeBtn.dataset.t=t; store.set("theme",t);
+  document.documentElement.setAttribute("data-theme",t);
+  themeBtn.setAttribute("aria-checked",t==="dark"); themeBtn.dataset.t=t; store.set("theme",t);
 }
-themeBtn.addEventListener("click",()=>setTheme({auto:"dark",dark:"light",light:"auto"}[themeBtn.dataset.t]));
+themeBtn.addEventListener("click",()=>setTheme(themeBtn.dataset.t==="dark"?"light":"dark"));
 
 /* ---------- share & export ---------- */
 const msg = text => { const m=document.getElementById("msg"); m.textContent=text; clearTimeout(msg.t); msg.t=setTimeout(()=>m.textContent="",6000); };
@@ -462,9 +465,9 @@ document.getElementById("impjson").addEventListener("change", async e=>{
   }catch(err){ msg("Could not read that file: "+err.message); }
 });
 
-setTheme(store.get("theme")||"auto");
-setOrig(!!store.get("orig"));
-setVec(!store.get("novec"));
+// First visit follows the system setting; after that the user's choice sticks.
+{ const t=store.get("theme"); setTheme(t==="light"||t==="dark" ? t : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
+setHi(store.get("hd")!==false);
 Object.keys(spots).forEach(paintRoom);
 renderFavs();
 applyVB();
