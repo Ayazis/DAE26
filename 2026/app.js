@@ -84,6 +84,7 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
   t.textContent=label;
   if(info){
     // Shown only for favorites: star in the corner and the headline brand under the label
+    el("text",{x:x+3,y:y+2,class:"check","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g).textContent="✓";
     const st=el("text",{x:x+w-2,y:y+2,class:"star","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g); st.textContent="★";
     if(!vertical && h>=fs*2.1){
       el("text",{x:cx,y:cy+fs*0.62,class:"rbrand","font-size":Math.max(6,Math.min(fs*.55,w/9)).toFixed(1)},g).textContent=headline(r,w/(Math.max(6,Math.min(fs*.55,w/9))*0.55));
@@ -223,6 +224,7 @@ const origBtn=document.getElementById("orig");
 function setOrig(on){ svg.classList.toggle("show-orig",on); origBtn.setAttribute("aria-pressed",on); store.set("orig",on); }
 origBtn.addEventListener("click",()=>setOrig(!svg.classList.contains("show-orig")));
 
+
 /* ---------- tooltip ---------- */
 const tip = document.getElementById("tip");
 let sel=null;
@@ -244,9 +246,15 @@ function select(r, move){
   tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>
     <button type="button" class="favb" aria-pressed="${!!st.fav}" aria-label="Favorite" title="Favorite">${st.fav?"★":"☆"}</button>
     <button type="button" class="x" aria-label="Close">×</button></div><div class="tb">${blocks}
+    <div class="acts"><button type="button" class="vis" aria-pressed="${!!st.visited}">${st.visited?"✓ Visited":"Mark visited"}</button>
+      <span class="rate" role="group" aria-label="Your rating">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-label="${n} of 5" aria-pressed="${(st.rating||0)>=n}">★</button>`).join("")}</span></div>
     <textarea class="note" rows="2" placeholder="Your notes for this room…" aria-label="Notes">${esc(st.note||"")}</textarea></div>`;
-  tip.querySelector(".favb").addEventListener("click",e=>{ const on=!roomState(r).fav; setRoom(r,{fav:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?"★":"☆"; });
+  tip.querySelector(".favb").addEventListener("click",e=>{ const on=!roomState(r).fav; setRoom(r,{fav:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?"★":"☆"; refresh(); });
   tip.querySelector(".note").addEventListener("input",e=>setRoom(r,{note:e.target.value}));
+  tip.querySelector(".vis").addEventListener("click",e=>{ const on=!roomState(r).visited; setRoom(r,{visited:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?"✓ Visited":"Mark visited"; refresh(); });
+  tip.querySelectorAll(".rate button").forEach(b=>b.addEventListener("click",()=>{
+    const n=+b.dataset.n, v = roomState(r).rating===n ? 0 : n; setRoom(r,{rating:v});
+    tip.querySelectorAll(".rate button").forEach(x=>x.setAttribute("aria-pressed", v>=+x.dataset.n)); }));
   tip.querySelector(".x").addEventListener("click",closeTip);
   tip.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go,true)));
   tip.hidden=false;
@@ -279,22 +287,24 @@ function placeTip(){
   tip.style.left=x+"px"; tip.style.top=y+"px";
 }
 
-/* ---------- search & zones ---------- */
+/* ---------- search & filters ---------- */
 const cur = () => document.getElementById("q").value.trim().toLowerCase();
 function matchRoom(r,q){
   if(!q) return false;
   if(r.toLowerCase()===q || (!isNum(q) && r.toLowerCase().includes(q))) return true;
+  if((roomState(r).note||"").toLowerCase().includes(q)) return true;
   return ROOMS[r].exs.some(e=>e.toLowerCase().includes(q) || (EX[e]||[]).some(b=>b.toLowerCase().includes(q)));
 }
-let zoneSel="all";
+let zoneSel="all", favOnly=false, hideVisited=false;
 function refresh(){
   const q=cur(); const hits=[];
   Object.entries(spots).forEach(([r,s])=>{
-    const inZone = zoneSel==="all" || ROOMS[r].z.id===zoneSel;
-    const hit = inZone && matchRoom(r,q);
+    const st=roomState(r);
+    const shown = (zoneSel==="all" || ROOMS[r].z.id===zoneSel) && (!favOnly || st.fav) && (!hideVisited || !st.visited);
+    const hit = shown && matchRoom(r,q);
     if(hit) hits.push(r);
     s.g.classList.toggle("hit", hit);
-    s.g.classList.toggle("dim", !inZone || (!!q && !hit));
+    s.g.classList.toggle("dim", !shown || (!!q && !hit));
   });
   const h=document.getElementById("hits");
   if(!q){ h.innerHTML=""; }
@@ -313,33 +323,110 @@ const zbox=document.getElementById("zones");
 [{id:"all",name:"All zones"}].concat(ZONES).forEach(z=>{
   const b=document.createElement("button"); b.type="button"; b.dataset.z=z.id;
   b.innerHTML=(z.color?`<span class="dot" style="background:${z.color}"></span>`:"")+z.name;
-  b.addEventListener("click",()=>{ zoneSel=z.id; zbox.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.z===zoneSel)); refresh(); });
+  b.addEventListener("click",()=>{ zoneSel=z.id; zbox.querySelectorAll("[data-z]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.z===zoneSel)); refresh(); });
   zbox.appendChild(b);
 });
 zbox.querySelector("button").setAttribute("aria-pressed","true");
+[["fav","★ Favorites only"],["vis","Hide visited"]].forEach(([k,label])=>{
+  const b=document.createElement("button"); b.type="button"; b.className="flt"; b.textContent=label; b.setAttribute("aria-pressed","false");
+  b.addEventListener("click",()=>{ const on=b.getAttribute("aria-pressed")!=="true"; b.setAttribute("aria-pressed",on);
+    if(k==="fav") favOnly=on; else hideVisited=on; refresh(); });
+  zbox.appendChild(b);
+});
 
-/* ---------- favorites ---------- */
+/* ---------- favorites & progress ---------- */
 function paintRoom(r){
   const s=spots[r]; if(!s) return; const st=roomState(r);
   s.g.classList.toggle("fav", !!st.fav);
   s.g.classList.toggle("noted", !!st.note);
+  s.g.classList.toggle("visited", !!st.visited);
 }
 const ORDER = {}; ZONES.forEach((z,zi)=>z.rooms.forEach(([r],ri)=>ORDER[r]=zi*1000+(isNum(r)?+r:500+ri)));
+const byOrder = (a,b)=>ORDER[a]-ORDER[b];
+const favList = () => Object.keys(store.get("rooms")||{}).filter(r=>ROOMS[r] && roomState(r).fav).sort(byOrder);
+const brandsOf = exs => exs.flatMap(e=>EX[e]&&EX[e].length?EX[e]:[e]);
 function renderFavs(){
-  const list=document.getElementById("favs");
-  const rooms=Object.keys(store.get("rooms")||{}).filter(r=>ROOMS[r] && roomState(r).fav).sort((a,b)=>ORDER[a]-ORDER[b]);
+  const list=document.getElementById("favs"), rooms=favList();
   document.getElementById("favcount").textContent = rooms.length ? `(${rooms.length})` : "";
+  const all=Object.keys(spots), seen=all.filter(r=>roomState(r).visited).length, favSeen=rooms.filter(r=>roomState(r).visited).length;
+  document.getElementById("progress").innerHTML = rooms.length||seen
+    ? `<span class="pbar" style="--p:${rooms.length?favSeen/rooms.length*100:seen/all.length*100}%"></span>`+
+      (rooms.length?`${favSeen} of ${rooms.length} favorites visited · `:"")+`${seen} of ${all.length} rooms visited` : "";
   if(!rooms.length){ list.innerHTML=`<li class="empty">Tap ☆ in a room's popup to add it here.</li>`; return; }
-  list.innerHTML = rooms.map(r=>{ const {z,exs}=ROOMS[r], st=roomState(r);
-    const brands=exs.flatMap(e=>EX[e]&&EX[e].length?EX[e]:[e]);
-    return `<li style="--zc:${z.color}"><button type="button" data-go="${esc(r)}"><span class="fr">${esc(rname(r))}</span>
+  list.innerHTML = rooms.map(r=>{ const {z,exs}=ROOMS[r], st=roomState(r), brands=brandsOf(exs);
+    const extra = (st.visited?" ✓":"")+(st.rating?" "+"★".repeat(st.rating):"");
+    return `<li style="--zc:${z.color}" class="${st.visited?"visited":""}"><button type="button" data-go="${esc(r)}"><span class="fr">${esc(rname(r))}${extra?`<span class="fx">${extra}</span>`:""}</span>
       <span class="fb">${esc(brands.slice(0,6).join(", "))}${brands.length>6?` +${brands.length-6}`:""}</span>
       ${st.note?`<span class="fn">${esc(st.note)}</span>`:""}</button></li>`; }).join("");
-  list.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ select(b.dataset.go,true); document.getElementById("mapbox").scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"}); }));
+  list.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ select(b.dataset.go,true); box.scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"}); }));
 }
+
+/* ---------- theme ---------- */
+const themeBtn=document.getElementById("theme");
+function setTheme(t){
+  if(t==="auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme",t);
+  themeBtn.textContent = {auto:"Auto",light:"Light",dark:"Dark"}[t]; themeBtn.dataset.t=t; store.set("theme",t);
+}
+themeBtn.addEventListener("click",()=>setTheme({auto:"dark",dark:"light",light:"auto"}[themeBtn.dataset.t]));
+
+/* ---------- share & export ---------- */
+const msg = text => { const m=document.getElementById("msg"); m.textContent=text; clearTimeout(msg.t); msg.t=setTimeout(()=>m.textContent="",6000); };
+function download(name, text, type){
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+document.getElementById("share").addEventListener("click", async ()=>{
+  const favs=favList(); if(!favs.length) return msg("Add some favorites first.");
+  const url = location.href.split("#")[0] + "#fav=" + favs.map(encodeURIComponent).join(",");
+  try{
+    if(navigator.share) await navigator.share({title:"My DAE 2026 favorites", url});
+    else { await navigator.clipboard.writeText(url); msg("Link copied. Anyone who opens it can add your favorites."); }
+  }catch(e){ if(e.name!=="AbortError") prompt("Copy this link:", url); }
+});
+function importSharedFavs(){
+  const m=location.hash.match(/^#fav=(.+)$/); if(!m) return;
+  history.replaceState(null,"",location.pathname+location.search);
+  const add=m[1].split(",").map(decodeURIComponent).filter(r=>ROOMS[r] && !roomState(r).fav);
+  if(add.length && confirm(`Add ${add.length} shared favorite${add.length>1?"s":""} (${add.map(rname).join(", ")})?`)){
+    add.forEach(r=>setRoom(r,{fav:true})); refresh(); msg(`Added ${add.length} favorites.`);
+  }
+}
+const withData = () => Object.keys(spots).sort(byOrder).map(r=>({r, st:roomState(r), ...ROOMS[r]})).filter(x=>Object.keys(x.st).length);
+document.getElementById("expmd").addEventListener("click",()=>{
+  const rs=withData(); if(!rs.length) return msg("Nothing to export yet.");
+  const md = "# Dutch Audio Event 2026: my notes\n\n" + rs.map(({r,st,z,exs})=>
+    `## ${rname(r)} (${z.name})${st.fav?" ★":""}\n\n`+
+    exs.map(e=>`- **${e}**: ${(EX[e]||[]).join(", ")||"no brands listed"}${URL_EX[e]?` ([page](${URL_EX[e]}))`:""}`).join("\n")+"\n\n"+
+    (st.visited?"Visited. ":"")+(st.rating?"Rating: "+"★".repeat(st.rating)+"☆".repeat(5-st.rating):"")+(st.visited||st.rating?"\n\n":"")+
+    (st.note?st.note+"\n\n":"")).join("");
+  download("dae2026-notes.md", md, "text/markdown");
+});
+document.getElementById("expcsv").addEventListener("click",()=>{
+  const rs=withData(); if(!rs.length) return msg("Nothing to export yet.");
+  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const csv=["room,zone,favorite,visited,rating,exhibitors,brands,note"].concat(rs.map(({r,st,z,exs})=>
+    [r,z.name,st.fav?1:0,st.visited?1:0,st.rating||"",exs.join("; "),brandsOf(exs).join("; "),st.note].map(q).join(","))).join("\r\n");
+  download("dae2026-notes.csv", "﻿"+csv, "text/csv");
+});
+document.getElementById("expjson").addEventListener("click",()=>{
+  download("dae2026-backup.json", JSON.stringify({app:"daem-2026", version:1, rooms:store.get("rooms")||{}},null,2), "application/json");
+});
+document.getElementById("impjson").addEventListener("change", async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  try{
+    const data=JSON.parse(await f.text());
+    if(data.app!=="daem-2026" || !data.rooms || typeof data.rooms!=="object") throw new Error("not a DAE 2026 backup");
+    const n=Object.keys(data.rooms).length;
+    if(!confirm(`Restore ${n} room${n!==1?"s":""} from this backup? This replaces your current favorites, notes and ratings.`)) return;
+    store.set("rooms", data.rooms);
+    Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); msg("Backup restored.");
+  }catch(err){ msg("Could not read that file: "+err.message); }
+});
+
+setTheme(store.get("theme")||"auto");
+setOrig(!!store.get("orig"));
 Object.keys(spots).forEach(paintRoom);
 renderFavs();
-
-setOrig(!!store.get("orig"));
 applyVB();
 refresh();
+importSharedFavs();

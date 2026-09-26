@@ -7,7 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
-
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1E3557">
 </head>
 <body>
 <div class="wrap">
@@ -18,13 +21,14 @@
 
   <div class="bar">
     <div class="row">
-      <input id="q" type="search" placeholder="Find a brand, exhibitor or room…" autocomplete="off" aria-label="Search">
+      <input id="q" type="search" placeholder="Find a brand, exhibitor, room or note…" autocomplete="off" aria-label="Search">
       <div class="zoom" role="group" aria-label="Zoom">
         <button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="zfit" aria-label="Fit whole plan">Fit</button><button type="button" id="zin" aria-label="Zoom in">+</button>
       </div>
       <button type="button" id="orig" class="tog" aria-pressed="false" title="Overlay the original floor plan image">Original</button>
+      <button type="button" id="theme" class="tog" title="Switch theme">Auto</button>
     </div>
-    <div class="zones" id="zones" role="group" aria-label="Show zone"></div>
+    <div class="zones" id="zones" role="group" aria-label="Filter rooms"></div>
     <div class="hits" id="hits" aria-live="polite"></div>
   </div>
 
@@ -36,14 +40,28 @@
 
   <section class="side" aria-labelledby="favh">
     <h2 id="favh">★ Favorites <span id="favcount"></span></h2>
+    <p class="progress" id="progress"></p>
     <ul class="favs" id="favs"></ul>
   </section>
 
-  <footer>Room and brand data from <a href="https://dutchaudioevent.nl/merken" target="_blank" rel="noopener">dutchaudioevent.nl</a>, collected 26 September 2026. When an exhibitor uses several rooms, the site lists one set of brands for all of them. Check the site for late changes.</footer>
+  <section class="side tools" aria-labelledby="toolsh">
+    <h2 id="toolsh">Share &amp; backup</h2>
+    <div class="row">
+      <button type="button" class="tog" id="share">Share favorites</button>
+      <button type="button" class="tog" id="expmd">Export notes (Markdown)</button>
+      <button type="button" class="tog" id="expcsv">Export CSV</button>
+      <button type="button" class="tog" id="expjson">Backup (JSON)</button>
+      <label class="tog file">Restore backup<input type="file" id="impjson" accept="application/json,.json" hidden></label>
+    </div>
+    <p class="msg" id="msg" aria-live="polite"></p>
+  </section>
+
+  <footer>Room and brand data from <a href="https://dutchaudioevent.nl/merken" target="_blank" rel="noopener">dutchaudioevent.nl</a>, collected 26 September 2026. When an exhibitor uses several rooms, the site lists one set of brands for all of them. Check the site for late changes. Your favorites and notes are stored only in this browser. Works offline after the first visit.</footer>
 </div>
 
 <script src="data.js"></script>
 <script src="plan.js"></script>
 <script src="app.js"></script>
+<script>if("serviceWorker" in navigator && location.protocol!=="file:") addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));</script>
 </body>
 </html>

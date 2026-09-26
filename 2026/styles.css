@@ -2,21 +2,21 @@
   --bg:#F4F5F6; --surface:#FFFFFF; --ink:#1A1D21; --muted:#5E6670; --line:#DDE1E5; --hl:#FFE88A;
   --red:#C8392B; --blue:#2A66B8; --green:#6E9A12; --yellow:#D39A00; --chip:#E7EAED;
   --pick:#D6247A; --mapbg:#EEF1F3;
-  --floor:#FFFFFF; --wall:#8A94A0; --room:#FFFFFF; --patio:#E3EDD8; --grey:#C9CED4; --darkarea:#5E7270; --hall:#F0D9D3; --hitfill:#FFE45C; --iconbg:#1E3557; --star:#E0A100;
+  --floor:#FFFFFF; --wall:#8A94A0; --room:#FFFFFF; --patio:#E3EDD8; --grey:#C9CED4; --darkarea:#5E7270; --hall:#F0D9D3; --hitfill:#FFE45C; --iconbg:#1E3557; --star:#E0A100; --visited:#E4E8EC;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
     --bg:#13161A; --surface:#1B1F24; --ink:#E9ECEF; --muted:#9AA3AD; --line:#2C323A; --hl:#6B5A10;
     --red:#E0604F; --blue:#5C92DE; --green:#A5C93A; --yellow:#E8B82E; --chip:#262B32; --pick:#FF4FA3; --mapbg:#101316;
-    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933;
+    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933; --visited:#1A1E23;
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#13161A; --surface:#1B1F24; --ink:#E9ECEF; --muted:#9AA3AD; --line:#2C323A; --hl:#6B5A10;
   --red:#E0604F; --blue:#5C92DE; --green:#A5C93A; --yellow:#E8B82E; --chip:#262B32; --pick:#FF4FA3; --mapbg:#101316;
-    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933;
+    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933; --visited:#1A1E23;
 }
 body{background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,sans-serif;font-size:15px;line-height:1.45;padding-inline:16px;padding-block:0 32px}
 .wrap{max-width:1100px;margin:0 auto}
@@ -114,6 +114,25 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .favs .fr{font-weight:700}
 .favs .fb{font-size:13px;color:var(--muted)}
 .favs .fn{font-size:13px;font-style:italic}
+/* visited, rating, filters, tools */
+.check{fill:var(--green);dominant-baseline:hanging;font-weight:700;display:none;pointer-events:none}
+.room.visited .check{display:inline}
+.room.visited .rbox{fill:var(--visited)}
+.room.visited .rlabel{fill:var(--muted)}
+.acts{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.vis{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;background:var(--chip);color:var(--ink);padding:4px 11px;cursor:pointer}
+.vis[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+.rate button{font-size:20px;line-height:1;border:0;background:none;color:var(--line);cursor:pointer;padding:0 1px}
+.rate button[aria-pressed="true"]{color:var(--star)}
+.zones .flt{background:var(--surface)}
+.progress{color:var(--muted);font-size:13px;margin:-2px 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.progress:empty{display:none}
+.pbar{width:120px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--green) var(--p),var(--chip) 0)}
+.favs li.visited button{opacity:.65}
+.favs .fx{color:var(--star);font-weight:600}
+.tools .row{gap:6px}
+.tools .file{display:inline-flex;align-items:center}
+.msg{color:var(--muted);font-size:13px;min-height:1.2em;margin:6px 0 0}
 mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 footer{color:var(--muted);font-size:12.5px;margin-top:22px}
 footer a{color:var(--blue)}

@@ -25,22 +25,23 @@ Some of this already exists in `2026/` (search, zone filter, zoom/pan, light/dar
 - **Done when:** favorites and notes survive a page reload.
 
 ## Phase 3: Find things
-- [ ] Improve search: highlight all matching rooms and show the result count.
-- [ ] Category filter chips (speakers, headphones, analog, electronics…).
-- [ ] Zone and floor switcher refinements.
+- [x] Search highlights all matching rooms and shows the result count. It also searches your own notes.
+- [x] Filter chips: zones, "★ Favorites only" and "Hide visited".
+- [ ] Category filter chips (speakers, headphones, analog, electronics…). Needs a category for each exhibitor or brand, which the event site doesn't provide. Still to do.
+- [x] Floor switcher: not needed, the event is on one floor.
 
 ## Phase 4: At-the-event mode
-- [ ] Make it an installable PWA that works offline (manifest plus a service worker that caches the app, data and `plan.jpg`).
-- [ ] "Visited" toggle, visited rooms greyed out, and a progress counter.
-- [ ] Quick 1–5 rating per room.
-- [ ] Low-light theme tuning.
-- [ ] Practical points of interest: toilets, food, exits, cloakroom.
-- **Done when:** the app works in airplane mode on a phone after the first visit.
+- [x] Installable PWA that works offline: `manifest.webmanifest`, app icons, and `sw.js` (caches the app on first visit, refreshes it in the background). Bump `CACHE` in `sw.js` when you want everyone to get a new version immediately.
+- [x] "Visited" toggle in the tooltip: visited rooms turn grey with a green ✓, and a progress bar shows favorites and rooms visited.
+- [x] Quick 1–5 star rating per room.
+- [x] Theme button (Auto / Dark / Light); dark is the low-light mode.
+- [x] Toilets, info points, catering, wardrobe, first aid and entrances are on the map (done in Phase 1).
+- [ ] **Still to do:** check airplane mode on a real phone after the first visit.
 
 ## Phase 5: Share and export
-- [ ] Share favorites through a URL hash, with import on open.
-- [ ] Export and import JSON as a backup.
-- [ ] Export notes and ratings as Markdown or CSV for after the event.
+- [x] "Share favorites" makes a `#fav=45,32,…` link (native share sheet on phones, clipboard on desktop). Opening it asks before adding the favorites.
+- [x] Backup and restore as JSON.
+- [x] Export notes, ratings and visited status as Markdown or CSV.
 
 ## Phase 6: Nice-to-haves
 - [ ] Demo and talk schedule with reminders.
