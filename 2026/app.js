@@ -1,3 +1,13 @@
+// All user data lives under one versioned localStorage key.
+const STORE_KEY = "daem-2026-v1";
+const store = (()=>{
+  let d={};
+  try{ d = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){}
+  try{ const z=localStorage.getItem("dae-zoom"); if(z && !d.zoom) d.zoom=+z; localStorage.removeItem("dae-zoom"); }catch(e){}
+  const save=()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }catch(e){} };
+  return { get:k=>d[k], set:(k,v)=>{ d[k]=v; save(); } };
+})();
+
 const ROOMS = {}; // name -> {z, exs}
 ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>{ ROOMS[r] = {z, exs}; }));
 const WHERE = {};
@@ -21,7 +31,7 @@ Object.entries(BOX).forEach(([r,[x,y,w,h]])=>{
 });
 
 let sel=null, zoneSel="all", zoom=1;
-try{ zoom = +localStorage.getItem("dae-zoom") || (innerWidth<700?2:1); }catch(e){ zoom = innerWidth<700?2:1; }
+zoom = store.get("zoom") || (innerWidth<700?2:1);
 
 function setZoom(z){
   const cx = (box.scrollLeft + box.clientWidth/2)/map.offsetWidth, cy=(box.scrollTop + box.clientHeight/2)/map.offsetHeight;
@@ -29,7 +39,7 @@ function setZoom(z){
   document.querySelectorAll(".zoom button").forEach(b=>b.setAttribute("aria-pressed", +b.dataset.z===z));
   box.scrollLeft = cx*map.offsetWidth - box.clientWidth/2;
   box.scrollTop = cy*map.offsetHeight - box.clientHeight/2;
-  try{localStorage.setItem("dae-zoom",z)}catch(e){}
+  store.set("zoom",z);
 }
 document.querySelectorAll(".zoom button").forEach(b=>b.addEventListener("click",()=>setZoom(+b.dataset.z)));
 
@@ -56,7 +66,8 @@ function select(r, move){
     const others=(WHERE[e]||[]).filter(x=>x!==r);
     const also = others.length ? ` <span class="also">· also in ${others.map(o=>`<button type="button" data-go="${esc(o)}">${esc(rname(o))}</button>`).join(", ")}</span>` : "";
     const b = list.length ? list.map(x=>hl(x,q)).join(", ") : `<span class="none">No brands listed on the site</span>`;
-    return `<div class="ex"><div class="exn">${hl(e,q)}${also}</div><div class="brands">${b}</div></div>`;
+    const link = URL_EX[e] ? ` <a class="ext" href="${esc(URL_EX[e])}" target="_blank" rel="noopener">View page ↗</a>` : "";
+    return `<div class="ex"><div class="exn">${hl(e,q)}${link}${also}</div><div class="brands">${b}</div></div>`;
   }).join("");
   const p=document.getElementById("panel");
   p.style.setProperty("--zc", z.color);

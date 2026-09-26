@@ -5,10 +5,10 @@ Event dates: **10–11 Oct 2026**. Aim to have Phase 4 (offline support) live an
 Some of this already exists in `2026/` (search, zone filter, zoom/pan, light/dark themes). Phase 0 checks what works and fills the gaps.
 
 ## Phase 0: Foundation
-- [ ] Review the existing code and data, and note what already works.
-- [ ] Enable GitHub Pages from `main` (the app will be at `/DAE26/2026/`). Optionally add a root `index.html` that redirects to `2026/`.
-- [ ] Settle the data model in `data.js`: add a `url` for each room's or exhibitor's original page, and a category if useful.
-- [ ] Store all user data under one versioned `localStorage` key (for example `daem-2026-v1`).
+- [x] Review the existing code and data. Already working: room hotspots (`BOX`), a room info panel below the map, search that highlights matching rooms, zone filter, 1×/2×/3× zoom with drag-to-pan, light/dark themes, and "also in room X" links for exhibitors in several rooms.
+- [x] Enable GitHub Pages from `main` (the app is at `/DAE26/2026/`). A root `index.html` redirects to `2026/`.
+- [x] Data model: `URL_EX` in `data.js` maps all 94 exhibitors to their page on dutchaudioevent.nl. The room panel shows a "View page ↗" link for each one (new tab). Categories are postponed to Phase 3.
+- [x] All user data is stored under one versioned `localStorage` key, `daem-2026-v1`, through a small `store` helper in `app.js`. The old `dae-zoom` key is migrated automatically.
 
 ## Phase 1: Core map (MVP)
 - [ ] Tapping or clicking a room shows a tooltip next to it with the room name, exhibitors, brands, and a "View page ↗" link (`target="_blank" rel="noopener"`).
