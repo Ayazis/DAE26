@@ -50,6 +50,12 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .l-orig{display:none;opacity:.55}
 #svg.show-orig .l-orig{display:inline}
 #svg.show-orig .l-foot,#svg.show-orig .l-areas{opacity:.25}
+.zhide{display:none}
+#svg.zoned .l-foot{display:none}
+/* Vector drawing hidden: only the original image with clickable room outlines */
+#svg.no-vec .l-foot,#svg.no-vec .l-areas,#svg.no-vec .l-corr,#svg.no-vec .l-icons,#svg.no-vec .l-labels,#svg.no-vec .rlabel,#svg.no-vec .rbrand{display:none}
+#svg.no-vec .room .rbox{fill:transparent;stroke:transparent}
+#svg.no-vec .l-orig{opacity:1}
 .foot{fill:var(--floor);stroke:var(--wall);stroke-width:2}
 .area{stroke:var(--wall);stroke-width:1}
 .a-patio{fill:var(--patio)} .a-grey{fill:var(--grey)} .a-dark{fill:var(--darkarea)} .a-hall{fill:var(--hall)} .a-lobby{fill:var(--floor)}
@@ -100,11 +106,10 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .room.fav .star{display:inline}
 .room.fav.has-brand .rbrand{display:inline}
 .room.fav.has-brand .rlabel{transform:translateY(-.3em);transform-box:fill-box}
-.room.fav .rbox{stroke:var(--star);stroke-width:3}
 .tip .favb{font:inherit;font-size:22px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
 .tip .favb[aria-pressed="true"]{color:var(--star)}
 .tip .favb+.x{margin-left:4px}
-.note{display:block;width:100%;box-sizing:border-box;margin-top:10px;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);resize:vertical}
+.note{display:block;width:100%;box-sizing:border-box;margin:8px 0 2px;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);resize:vertical}
 .side{margin-top:18px}
 .side h2{font-family:"Barlow Condensed",sans-serif;font-size:22px;margin:0 0 8px}
 #favcount{color:var(--muted);font-weight:500}

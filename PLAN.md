@@ -12,14 +12,14 @@ Some of this already exists in `2026/` (search, zone filter, zoom/pan, light/dar
 
 ## Phase 1: Core map (MVP) — SVG floor plan
 - [x] Redraw `plan.jpg` as an inline SVG (`plan.js` geometry + `BOX` rooms): building, patios, zone-coloured corridors, labelled rooms, facility icons (toilets, info, catering, wardrobe, first aid), entrances and zone badges.
-- [x] Themed: follows light/dark mode. "Original" toggle overlays `plan.jpg` for comparison.
+- [x] Themed: follows light/dark mode. "Map" toggles the drawn map, "Original" toggles `plan.jpg`. Use either or both.
 - [x] Pan and zoom by changing the SVG viewBox: drag, pinch, mouse wheel, and −/Fit/+ buttons.
 - [x] Tapping a room shows a tooltip next to it with exhibitors, brands and "View page ↗" links (new tab). On phones it becomes a bottom sheet. Closes with ×, Esc, or a tap on empty map.
 - [x] Rooms can be reached with the keyboard (Tab, Enter).
 - **Done when:** every room can be clicked on desktop and phone, and every link works.
 
 ## Phase 2: Personalisation
-- [x] Star a room from its tooltip; starred rooms get a gold star, a gold outline and their headline brand (for example "Aavik +3") on the map.
+- [x] Star a room from its tooltip; starred rooms get a gold star and their headline brand (for example "Aavik +3") on the map.
 - [x] Favorites list below the map, sorted by zone and room; tapping an entry zooms to that room and opens its tooltip.
 - [x] Personal notes per room (in the tooltip, shown in the favorites list).
 - **Done when:** favorites and notes survive a page reload.
@@ -27,6 +27,7 @@ Some of this already exists in `2026/` (search, zone filter, zoom/pan, light/dar
 ## Phase 3: Find things
 - [x] Search highlights all matching rooms and shows the result count. It also searches your own notes.
 - [x] Filter chips: zones, "★ Favorites only" and "Hide visited".
+- [x] Zone chips toggle (more than one can be active). Only the active zones stay visible, and the view zooms to them. The original image is cropped to them.
 - [ ] Category filter chips (speakers, headphones, analog, electronics…). Needs a category for each exhibitor or brand, which the event site doesn't provide. Still to do.
 - [x] Floor switcher: not needed, the event is on one floor.
 

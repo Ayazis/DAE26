@@ -222,7 +222,11 @@ document.getElementById("zout").addEventListener("click",()=>{ const c={x:vb.x+v
 document.getElementById("zfit").addEventListener("click",fitView);
 const origBtn=document.getElementById("orig");
 function setOrig(on){ svg.classList.toggle("show-orig",on); origBtn.setAttribute("aria-pressed",on); store.set("orig",on); }
-origBtn.addEventListener("click",()=>setOrig(!svg.classList.contains("show-orig")));
+origBtn.addEventListener("click",()=>{ const on=!svg.classList.contains("show-orig"); setOrig(on); if(!on && !vecOn()) setVec(true); });
+const vecBtn=document.getElementById("vec");
+const vecOn = () => !svg.classList.contains("no-vec");
+function setVec(on){ svg.classList.toggle("no-vec",!on); vecBtn.setAttribute("aria-pressed",on); store.set("novec",!on); if(!on) setOrig(true); }
+vecBtn.addEventListener("click",()=>setVec(!vecOn()));
 
 
 /* ---------- tooltip ---------- */
@@ -245,10 +249,10 @@ function select(r, move){
   const st=roomState(r);
   tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>
     <button type="button" class="favb" aria-pressed="${!!st.fav}" aria-label="Favorite" title="Favorite">${st.fav?"★":"☆"}</button>
-    <button type="button" class="x" aria-label="Close">×</button></div><div class="tb">${blocks}
+    <button type="button" class="x" aria-label="Close">×</button></div><div class="tb">
     <div class="acts"><button type="button" class="vis" aria-pressed="${!!st.visited}">${st.visited?"✓ Visited":"Mark visited"}</button>
       <span class="rate" role="group" aria-label="Your rating">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-label="${n} of 5" aria-pressed="${(st.rating||0)>=n}">★</button>`).join("")}</span></div>
-    <textarea class="note" rows="2" placeholder="Your notes for this room…" aria-label="Notes">${esc(st.note||"")}</textarea></div>`;
+    <textarea class="note" rows="2" placeholder="Your notes for this room…" aria-label="Notes">${esc(st.note||"")}</textarea>${blocks}</div>`;
   tip.querySelector(".favb").addEventListener("click",e=>{ const on=!roomState(r).fav; setRoom(r,{fav:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?"★":"☆"; refresh(); });
   tip.querySelector(".note").addEventListener("input",e=>setRoom(r,{note:e.target.value}));
   tip.querySelector(".vis").addEventListener("click",e=>{ const on=!roomState(r).visited; setRoom(r,{visited:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?"✓ Visited":"Mark visited"; refresh(); });
@@ -295,12 +299,14 @@ function matchRoom(r,q){
   if((roomState(r).note||"").toLowerCase().includes(q)) return true;
   return ROOMS[r].exs.some(e=>e.toLowerCase().includes(q) || (EX[e]||[]).some(b=>b.toLowerCase().includes(q)));
 }
-let zoneSel="all", favOnly=false, hideVisited=false;
+let zones=new Set(), favOnly=false, hideVisited=false; // empty set = all zones
+const zoneOk = r => !zones.size || zones.has(ROOMS[r].z.id);
 function refresh(){
   const q=cur(); const hits=[];
   Object.entries(spots).forEach(([r,s])=>{
     const st=roomState(r);
-    const shown = (zoneSel==="all" || ROOMS[r].z.id===zoneSel) && (!favOnly || st.fav) && (!hideVisited || !st.visited);
+    const shown = (!favOnly || st.fav) && (!hideVisited || !st.visited);
+    if(!zoneOk(r)) { s.g.classList.remove("hit"); s.g.classList.add("dim"); return; }
     const hit = shown && matchRoom(r,q);
     if(hit) hits.push(r);
     s.g.classList.toggle("hit", hit);
@@ -323,10 +329,43 @@ const zbox=document.getElementById("zones");
 [{id:"all",name:"All zones"}].concat(ZONES).forEach(z=>{
   const b=document.createElement("button"); b.type="button"; b.dataset.z=z.id;
   b.innerHTML=(z.color?`<span class="dot" style="background:${z.color}"></span>`:"")+z.name;
-  b.addEventListener("click",()=>{ zoneSel=z.id; zbox.querySelectorAll("[data-z]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.z===zoneSel)); refresh(); });
+  b.addEventListener("click",()=>{
+    if(z.id==="all") zones.clear(); else zones.has(z.id) ? zones.delete(z.id) : zones.add(z.id);
+    if(zones.size===ZONES.length) zones.clear();
+    applyZones(true); refresh(); });
   zbox.appendChild(b);
 });
-zbox.querySelector("button").setAttribute("aria-pressed","true");
+/* Zone view: everything outside the selected zones is hidden and the view zooms to them. */
+const ZBOX = {}; // zone -> bbox of its rooms and corridors
+function grow(b,x,y,w,h){ b.x1=Math.min(b.x1,x); b.y1=Math.min(b.y1,y); b.x2=Math.max(b.x2,x+w); b.y2=Math.max(b.y2,y+h); }
+ZONES.forEach(z=>{ const b={x1:1e9,y1:1e9,x2:-1e9,y2:-1e9};
+  z.rooms.forEach(([r])=>{ const s=spots[r]; if(s) grow(b,s.x,s.y,s.w,s.h); });
+  PLAN.corridors.filter(c=>c[0]===z.id).forEach(([,x,y,w,h])=>grow(b,x,y,w,h));
+  ZBOX[z.id]=b; });
+const clip = el("clipPath",{id:"zclip"}, el("defs",{},svg));
+let loose=null; // elements without a zone, with their centre point
+function applyZones(move){
+  zbox.querySelectorAll("[data-z]").forEach(x=>x.setAttribute("aria-pressed", x.dataset.z==="all" ? !zones.size : zones.has(x.dataset.z)));
+  svg.classList.toggle("zoned", zones.size>0);
+  if(!loose){
+    loose=[...svg.querySelectorAll(".l-areas>*, .l-labels>*, .l-icons>.icon, .l-icons>.entrance, .room.empty")].map(n=>{ const b=n.getBBox(), m=n.transform.baseVal.consolidate()?.matrix; // getBBox ignores the element's own transform
+    const px=b.x+b.width/2, py=b.y+b.height/2; return {n, cx:m?m.a*px+m.c*py+m.e:px, cy:m?m.b*px+m.d*py+m.f:py}; });
+  }
+  const inZone = (x,y) => [...zones].some(z=>{ const b=ZBOX[z]; return x>=b.x1-25 && x<=b.x2+25 && y>=b.y1-25 && y<=b.y2+25; });
+  loose.forEach(({n,cx,cy})=>n.classList.toggle("zhide", zones.size>0 && !inZone(cx,cy)));
+  svg.querySelectorAll(".l-corr>*, .badge, .room[tabindex]").forEach(n=>{
+    const z=[...n.classList].find(c=>c.startsWith("z-")); n.classList.toggle("zhide", zones.size>0 && !zones.has(z&&z.slice(2)));
+  });
+  // The original image can't hide parts of itself, so crop it to the active zones.
+  clip.innerHTML = [...zones].map(z=>{ const b=ZBOX[z]; return `<rect x="${b.x1-25}" y="${b.y1-25}" width="${b.x2-b.x1+50}" height="${b.y2-b.y1+50}"/>`; }).join("");
+  if(zones.size) orig.setAttribute("clip-path","url(#zclip)"); else orig.removeAttribute("clip-path");
+  if(sel && zones.size && !zoneOk(sel)) closeTip();
+  if(!move) return;
+  if(!zones.size) return fitView();
+  const b={x1:1e9,y1:1e9,x2:-1e9,y2:-1e9}; zones.forEach(z=>{ const o=ZBOX[z]; grow(b,o.x1,o.y1,o.x2-o.x1,o.y2-o.y1); });
+  const pad=40; animateTo({x:b.x1-pad, y:b.y1-pad, w:b.x2-b.x1+2*pad, h:b.y2-b.y1+2*pad});
+}
+applyZones(false);
 [["fav","★ Favorites only"],["vis","Hide visited"]].forEach(([k,label])=>{
   const b=document.createElement("button"); b.type="button"; b.className="flt"; b.textContent=label; b.setAttribute("aria-pressed","false");
   b.addEventListener("click",()=>{ const on=b.getAttribute("aria-pressed")!=="true"; b.setAttribute("aria-pressed",on);
@@ -356,8 +395,8 @@ function renderFavs(){
   list.innerHTML = rooms.map(r=>{ const {z,exs}=ROOMS[r], st=roomState(r), brands=brandsOf(exs);
     const extra = (st.visited?" ✓":"")+(st.rating?" "+"★".repeat(st.rating):"");
     return `<li style="--zc:${z.color}" class="${st.visited?"visited":""}"><button type="button" data-go="${esc(r)}"><span class="fr">${esc(rname(r))}${extra?`<span class="fx">${extra}</span>`:""}</span>
-      <span class="fb">${esc(brands.slice(0,6).join(", "))}${brands.length>6?` +${brands.length-6}`:""}</span>
-      ${st.note?`<span class="fn">${esc(st.note)}</span>`:""}</button></li>`; }).join("");
+      ${st.note?`<span class="fn">${esc(st.note)}</span>`:""}
+      <span class="fb">${esc(brands.slice(0,6).join(", "))}${brands.length>6?` +${brands.length-6}`:""}</span></button></li>`; }).join("");
   list.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ select(b.dataset.go,true); box.scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"}); }));
 }
 
@@ -425,6 +464,7 @@ document.getElementById("impjson").addEventListener("change", async e=>{
 
 setTheme(store.get("theme")||"auto");
 setOrig(!!store.get("orig"));
+setVec(!store.get("novec"));
 Object.keys(spots).forEach(paintRoom);
 renderFavs();
 applyVB();
