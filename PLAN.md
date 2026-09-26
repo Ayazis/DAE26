@@ -10,10 +10,12 @@ Some of this already exists in `2026/` (search, zone filter, zoom/pan, light/dar
 - [x] Data model: `URL_EX` in `data.js` maps all 94 exhibitors to their page on dutchaudioevent.nl. The room panel shows a "View page ↗" link for each one (new tab). Categories are postponed to Phase 3.
 - [x] All user data is stored under one versioned `localStorage` key, `daem-2026-v1`, through a small `store` helper in `app.js`. The old `dae-zoom` key is migrated automatically.
 
-## Phase 1: Core map (MVP)
-- [ ] Tapping or clicking a room shows a tooltip next to it with the room name, exhibitors, brands, and a "View page ↗" link (`target="_blank" rel="noopener"`).
-- [ ] Keep the tooltip on screen at the edges, close it on an outside tap or Esc, and make it keyboard-accessible.
-- [ ] Make sure pinch zoom and pan work well on mobile.
+## Phase 1: Core map (MVP) — SVG floor plan
+- [x] Redraw `plan.jpg` as an inline SVG (`plan.js` geometry + `BOX` rooms): building, patios, zone-coloured corridors, labelled rooms, facility icons (toilets, info, catering, wardrobe, first aid), entrances and zone badges.
+- [x] Themed: follows light/dark mode. "Original" toggle overlays `plan.jpg` for comparison.
+- [x] Pan and zoom by changing the SVG viewBox: drag, pinch, mouse wheel, and −/Fit/+ buttons.
+- [x] Tapping a room shows a tooltip next to it with exhibitors, brands and "View page ↗" links (new tab). On phones it becomes a bottom sheet. Closes with ×, Esc, or a tap on empty map.
+- [x] Rooms can be reached with the keyboard (Tab, Enter).
 - **Done when:** every room can be clicked on desktop and phone, and every link works.
 
 ## Phase 2: Personalisation

@@ -20,26 +20,25 @@
     <div class="row">
       <input id="q" type="search" placeholder="Find a brand, exhibitor or room…" autocomplete="off" aria-label="Search">
       <div class="zoom" role="group" aria-label="Zoom">
-        <button type="button" data-z="1">1×</button><button type="button" data-z="2">2×</button><button type="button" data-z="3">3×</button>
+        <button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="zfit" aria-label="Fit whole plan">Fit</button><button type="button" id="zin" aria-label="Zoom in">+</button>
       </div>
+      <button type="button" id="orig" class="tog" aria-pressed="false" title="Overlay the original floor plan image">Original</button>
     </div>
     <div class="zones" id="zones" role="group" aria-label="Show zone"></div>
     <div class="hits" id="hits" aria-live="polite"></div>
   </div>
 
   <div class="mapbox" id="mapbox">
-    <div class="map" id="map">
-      <img src="plan.jpg" alt="Floor plan of NH Koningshof with the four colour zones" draggable="false">
-    </div>
+    <svg id="svg" role="group" aria-label="Floor plan of NH Koningshof with the four colour zones" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="tip" id="tip" role="dialog" aria-live="polite" hidden></div>
   </div>
-  <p class="hint">Drag or scroll the map to move around. Grey rooms have no exhibitor listed.</p>
-
-  <div class="panel" id="panel"><p class="empty">Tap a room on the map. Try room 45, or search “wilson”.</p></div>
+  <p class="hint">Drag to move, pinch or scroll to zoom. Tap a room to see its exhibitors. Grey rooms have no exhibitor listed.</p>
 
   <footer>Room and brand data from <a href="https://dutchaudioevent.nl/merken" target="_blank" rel="noopener">dutchaudioevent.nl</a>, collected 26 September 2026. When an exhibitor uses several rooms, the site lists one set of brands for all of them. Check the site for late changes.</footer>
 </div>
 
 <script src="data.js"></script>
+<script src="plan.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
