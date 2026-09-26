@@ -81,7 +81,7 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .rlabel{fill:var(--ink);text-anchor:middle;dominant-baseline:central;font-weight:600;pointer-events:none}
 .room.dim{opacity:.28}
 .room.hit .rbox{fill:var(--hitfill);stroke:var(--pick);stroke-width:4;animation:pulse 1.4s ease-in-out infinite}
-.room.sel .rbox{fill:color-mix(in srgb,var(--pick) 30%,var(--room));stroke:var(--pick);stroke-width:4;animation:none}
+.room.sel .rbox{fill:color-mix(in srgb,var(--pick) 30%,var(--room));animation:none}
 @keyframes pulse{50%{stroke-opacity:.3}}
 @media (prefers-reduced-motion:reduce){.room.hit .rbox{animation:none}}
 .icon rect{fill:var(--iconbg)} .icon path,.icon circle{fill:#fff}
