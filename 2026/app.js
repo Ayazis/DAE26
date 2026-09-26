@@ -428,9 +428,10 @@ document.getElementById("share").addEventListener("click", async ()=>{
 function importSharedFavs(){
   const m=location.hash.match(/^#fav=(.+)$/); if(!m) return;
   history.replaceState(null,"",location.pathname+location.search);
-  const add=m[1].split(",").map(decodeURIComponent).filter(r=>ROOMS[r] && !roomState(r).fav);
+  const dec = s => { try{ return decodeURIComponent(s); }catch(e){ return null; } };
+  const add=[...new Set(m[1].split(",").map(dec))].filter(r=>r && ROOMS[r] && !roomState(r).fav);
   if(add.length && confirm(`Add ${add.length} shared favorite${add.length>1?"s":""} (${add.map(rname).join(", ")})?`)){
-    add.forEach(r=>setRoom(r,{fav:true})); refresh(); msg(`Added ${add.length} favorites.`);
+    add.forEach(r=>setRoom(r,{fav:true})); refresh(); msg(`Added ${add.length} favorite${add.length>1?"s":""}.`);
   }
 }
 const withData = () => Object.keys(spots).sort(byOrder).map(r=>({r, st:roomState(r), ...ROOMS[r]})).filter(x=>Object.keys(x.st).length);
@@ -445,22 +446,39 @@ document.getElementById("expmd").addEventListener("click",()=>{
 });
 document.getElementById("expcsv").addEventListener("click",()=>{
   const rs=withData(); if(!rs.length) return msg("Nothing to export yet.");
-  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  // Prefix cells that spreadsheets would evaluate as formulas.
+  const q=v=>{ let s=String(v??""); if(/^[=+\-@\t\r]/.test(s)) s="'"+s; return `"${s.replace(/"/g,'""')}"`; };
   const csv=["room,zone,favorite,visited,rating,exhibitors,brands,note"].concat(rs.map(({r,st,z,exs})=>
     [r,z.name,st.fav?1:0,st.visited?1:0,st.rating||"",exs.join("; "),brandsOf(exs).join("; "),st.note].map(q).join(","))).join("\r\n");
   download("dae2026-notes.csv", "﻿"+csv, "text/csv");
 });
+const BACKUP_VERSION = 1;
+// Keeps only well-formed per-room fields; rooms left with nothing are dropped.
+function cleanRooms(src){
+  const out={};
+  Object.entries(src).forEach(([r,st])=>{
+    if(!st || typeof st!=="object") return;
+    const c={};
+    if(st.fav===true) c.fav=true;
+    if(st.visited===true) c.visited=true;
+    if(typeof st.note==="string" && st.note) c.note=st.note;
+    if(Number.isInteger(st.rating) && st.rating>=1 && st.rating<=5) c.rating=st.rating;
+    if(Object.keys(c).length) out[r]=c;
+  });
+  return out;
+}
 document.getElementById("expjson").addEventListener("click",()=>{
-  download("dae2026-backup.json", JSON.stringify({app:"daem-2026", version:1, rooms:store.get("rooms")||{}},null,2), "application/json");
+  download("dae2026-backup.json", JSON.stringify({app:"daem-2026", version:BACKUP_VERSION,rooms:store.get("rooms")||{}},null,2), "application/json");
 });
 document.getElementById("impjson").addEventListener("change", async e=>{
   const f=e.target.files[0]; e.target.value=""; if(!f) return;
   try{
     const data=JSON.parse(await f.text());
-    if(data.app!=="daem-2026" || !data.rooms || typeof data.rooms!=="object") throw new Error("not a DAE 2026 backup");
-    const n=Object.keys(data.rooms).length;
+    if(!data || data.app!=="daem-2026" || !data.rooms || typeof data.rooms!=="object" || Array.isArray(data.rooms)) throw new Error("not a DAE 2026 backup");
+    if(data.version>BACKUP_VERSION) throw new Error("this backup is from a newer version of the app");
+    const rooms=cleanRooms(data.rooms), n=Object.keys(rooms).length;
     if(!confirm(`Restore ${n} room${n!==1?"s":""} from this backup? This replaces your current favorites, notes and ratings.`)) return;
-    store.set("rooms", data.rooms);
+    store.set("rooms", rooms);
     Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); msg("Backup restored.");
   }catch(err){ msg("Could not read that file: "+err.message); }
 });
@@ -473,3 +491,4 @@ renderFavs();
 applyVB();
 refresh();
 importSharedFavs();
+addEventListener("hashchange", importSharedFavs); // a shared link opened while the app is already open
