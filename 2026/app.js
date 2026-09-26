@@ -1,5 +1,7 @@
 // Feature flags. zoneToggles: colour-zone filter buttons on the map (zone view logic stays, it just has no way to be triggered).
-const FEATURES = { zoneToggles: false };
+// cloudBackup: optional Google Drive backup (needs GDRIVE_CLIENT_ID). Off = nothing Google-related is loaded or shown.
+const FEATURES = { zoneToggles: false, cloudBackup: true };
+const GDRIVE_CLIENT_ID = "643036601253-406hpgt3n0jsc755b723tum6uceuaieq.apps.googleusercontent.com";
 // All user data lives under one versioned localStorage key.
 const STORE_KEY = "daem-2026-v1";
 const store = (()=>{
@@ -467,20 +469,28 @@ function cleanRooms(src){
   });
   return out;
 }
+const backupPayload = () => ({app:"daem-2026", version:BACKUP_VERSION, rooms:store.get("rooms")||{}});
+// Validates a parsed backup and returns its cleaned rooms; throws with a user-readable reason.
+function parseBackup(data){
+  if(!data || data.app!=="daem-2026" || !data.rooms || typeof data.rooms!=="object" || Array.isArray(data.rooms)) throw new Error("not a DAE 2026 backup");
+  if(data.version>BACKUP_VERSION) throw new Error("this backup is from a newer version of the app");
+  return cleanRooms(data.rooms);
+}
+// Asks first, then replaces current favorites, notes and ratings. Returns true if applied.
+function restoreRooms(rooms, source){
+  const n=Object.keys(rooms).length;
+  if(!confirm(`Restore ${n} room${n!==1?"s":""} from ${source}? This replaces your current favorites, notes and ratings.`)) return false;
+  store.set("rooms", rooms);
+  Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); msg("Backup restored.");
+  return true;
+}
 document.getElementById("expjson").addEventListener("click",()=>{
-  download("dae2026-backup.json", JSON.stringify({app:"daem-2026", version:BACKUP_VERSION,rooms:store.get("rooms")||{}},null,2), "application/json");
+  download("dae2026-backup.json", JSON.stringify(backupPayload(),null,2), "application/json");
 });
 document.getElementById("impjson").addEventListener("change", async e=>{
   const f=e.target.files[0]; e.target.value=""; if(!f) return;
-  try{
-    const data=JSON.parse(await f.text());
-    if(!data || data.app!=="daem-2026" || !data.rooms || typeof data.rooms!=="object" || Array.isArray(data.rooms)) throw new Error("not a DAE 2026 backup");
-    if(data.version>BACKUP_VERSION) throw new Error("this backup is from a newer version of the app");
-    const rooms=cleanRooms(data.rooms), n=Object.keys(rooms).length;
-    if(!confirm(`Restore ${n} room${n!==1?"s":""} from this backup? This replaces your current favorites, notes and ratings.`)) return;
-    store.set("rooms", rooms);
-    Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); msg("Backup restored.");
-  }catch(err){ msg("Could not read that file: "+err.message); }
+  try{ restoreRooms(parseBackup(JSON.parse(await f.text())), "this backup"); }
+  catch(err){ msg("Could not read that file: "+err.message); }
 });
 
 // First visit follows the system setting; after that the user's choice sticks.
@@ -492,3 +502,8 @@ applyVB();
 refresh();
 importSharedFavs();
 addEventListener("hashchange", importSharedFavs); // a shared link opened while the app is already open
+
+// Optional cloud backup: loaded only when the flag is on and a client ID is set. Everything above works without it.
+if(FEATURES.cloudBackup && GDRIVE_CLIENT_ID){
+  const sc=document.createElement("script"); sc.src="gdrive.js"; document.head.appendChild(sc);
+}
