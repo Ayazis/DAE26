@@ -30,7 +30,7 @@ ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>exs.forEach(e=>(WHERE[e] ||= []).pus
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hl = (t,q) => { if(!q) return esc(t); const i=t.toLowerCase().indexOf(q); return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); };
 const isNum = r => /^\d+$/.test(r);
-const rname = r => isNum(r) ? "Room "+r : r;
+const rname = r => isNum(r) ? t("room_label",{n:r}) : r;
 const reduceMotion = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
 
 /* ---------- SVG floor plan ---------- */
@@ -90,15 +90,18 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
     // Headline brand under the label is always shown; star and check in the corner only for favorites and visited rooms
     el("text",{x:x+3,y:y+2,class:"check","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g).textContent="✓";
     const st=el("text",{x:x+w-2,y:y+2,class:"star","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g); st.textContent="★";
-    if(!vertical && h>=fs*2.1){
+    if(!vertical && h>=fs*1.75){
       el("text",{x:cx,y:cy+fs*0.62,class:"rbrand","font-size":Math.max(6,Math.min(fs*.55,w/9)).toFixed(1)},g).textContent=headline(r,w/(Math.max(6,Math.min(fs*.55,w/9))*0.55));
     }
     g.setAttribute("tabindex","0"); g.setAttribute("role","button");
-    g.setAttribute("aria-label", rname(r)+", "+info.exs.join(", "));
     spots[r]={g,x,y,w,h};
     if(g.querySelector(".rbrand")) g.classList.add("has-brand");
   }
 });
+function relabelRooms(){
+  Object.entries(spots).forEach(([r,s])=>s.g.setAttribute("aria-label", rname(r)+", "+ROOMS[r].exs.join(", ")));
+  iconTitles.forEach(([node,key])=>node.textContent=t(key));
+}
 
 // Facility icons
 const ICON = {
@@ -108,13 +111,16 @@ const ICON = {
   coat:'<path d="M0-5.5a1.8 1.8 0 0 1 1 3.3L.6-1.5 6.5 3.4c.5.4.2 1.3-.5 1.3h-12c-.7 0-1-.9-.5-1.3L-.6-1.5v-.9a.6.6 0 0 1 .6-.6.8.8 0 1 0-.8-.8H-2A2 2 0 0 1 0-5.5zm0 5.4L-4.6 3.5h9.2z"/>',
   aid: '<path d="M-2-6.5h4v4.5h4.5v4H2v4.5h-4V2h-4.5v-4H-2z"/>'
 };
-const ICON_NAME = {wc:"Toilets", info:"Info point", food:"Catering", coat:"Wardrobe", aid:"First aid / AED"};
+const ICON_NAME_KEY = {wc:"icon_wc", info:"icon_info", food:"icon_food", coat:"icon_coat", aid:"icon_aid"};
+const iconTitles = [];
 PLAN.icons.forEach(([k,x,y])=>{
   const g=el("g",{class:"icon i-"+k,transform:`translate(${x} ${y})`},L.icons);
   el("rect",{x:-9,y:-9,width:18,height:18,rx:4},g);
   g.insertAdjacentHTML("beforeend", ICON[k]);
-  el("title",{},g).textContent=ICON_NAME[k];
+  const title=el("title",{},g); title.textContent=t(ICON_NAME_KEY[k]);
+  iconTitles.push([title,ICON_NAME_KEY[k]]);
 });
+relabelRooms();
 PLAN.entrances.forEach(([x,y,dir,label])=>{
   const g=el("g",{class:"entrance",transform:`translate(${x} ${y})`},L.icons);
   el("rect",{x:-20,y:-20,width:40,height:40,rx:7},g);
@@ -122,6 +128,7 @@ PLAN.entrances.forEach(([x,y,dir,label])=>{
   const t=el("text",{x:dir==="left"?28:0,y:dir==="left"?5:-30,class:"elabel","text-anchor":dir==="left"?"start":"middle"},g);
   t.textContent=label;
 });
+// Zone badge names on the floor plan itself are always Dutch (the venue's own zone names), independent of UI language.
 const ZNL={yellow:"gele zone",green:"groene zone",blue:"blauwe zone",red:"rode zone"};
 PLAN.badges.forEach(([z,x,y])=>{
   const g=el("g",{class:"badge z-"+z,transform:`translate(${x} ${y})`},L.icons);
@@ -223,14 +230,19 @@ new ResizeObserver(()=>applyVB()).observe(box);
 
 /* Fullscreen: real Fullscreen API where available, otherwise (iPhone) a fixed full-window overlay. */
 const fullBtn=document.getElementById("full");
+const barEl=document.getElementById("bar");
+const barHome=document.getElementById("barhome");
 function setFull(on){
   box.classList.toggle("full",on); fullBtn.setAttribute("aria-pressed",on);
   document.body.style.overflow=on?"hidden":"";
+  if(on) box.insertBefore(barEl, box.firstChild);
+  else barHome.after(barEl);
   if(on && box.requestFullscreen) box.requestFullscreen().catch(()=>{});
   else if(!on && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
   requestAnimationFrame(()=>applyZones(true));
 }
 fullBtn.addEventListener("click",()=>setFull(!box.classList.contains("full")));
+new ResizeObserver(()=>box.style.setProperty("--barh",barEl.offsetHeight+"px")).observe(barEl);
 document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement && box.classList.contains("full")) setFull(false); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && box.classList.contains("full")) setFull(false); });
 /* High res = the redrawn map (default). Off = the original plan JPG, rooms stay tappable on top of it. */
@@ -250,22 +262,22 @@ function select(r, move){
   const blocks = exs.map(e=>{
     const list=EX[e]||[];
     const others=(WHERE[e]||[]).filter(x=>x!==r);
-    const also = others.length ? `<div class="also">Also in ${others.map(o=>`<button type="button" data-go="${esc(o)}">${esc(rname(o))}</button>`).join(", ")}</div>` : "";
-    const link = URL_EX[e] ? `<a class="ext" href="${esc(URL_EX[e])}" target="_blank" rel="noopener">View page ↗</a>` : "";
-    const b = list.length ? list.map(x=>hl(x,q)).join(", ") : `<span class="none">No brands listed on the site</span>`;
+    const also = others.length ? `<div class="also">${esc(t("also_in"))}${others.map(o=>`<button type="button" data-go="${esc(o)}">${esc(rname(o))}</button>`).join(", ")}</div>` : "";
+    const link = URL_EX[e] ? `<a class="ext" href="${esc(URL_EX[e])}" target="_blank" rel="noopener">${esc(t("view_page"))}</a>` : "";
+    const b = list.length ? list.map(x=>hl(x,q)).join(", ") : `<span class="none">${esc(t("no_brands"))}</span>`;
     return `<div class="ex"><div class="exn"><span>${hl(e,q)}</span>${link}</div><div class="brands">${b}</div>${also}</div>`;
   }).join("");
   tip.style.setProperty("--zc", z.color);
   const st=roomState(r);
   tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>
-    <button type="button" class="favb" aria-pressed="${!!st.fav}" aria-label="Favorite" title="Favorite">${st.fav?"★":"☆"}</button>
-    <button type="button" class="x" aria-label="Close">×</button></div><div class="tb">
-    <div class="acts"><button type="button" class="vis" aria-pressed="${!!st.visited}">${st.visited?"✓ Visited":"Mark visited"}</button>
-      <span class="rate" role="group" aria-label="Your rating">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-label="${n} of 5" aria-pressed="${(st.rating||0)>=n}">★</button>`).join("")}</span></div>
-    <textarea class="note" rows="2" placeholder="Your notes for this room…" aria-label="Notes">${esc(st.note||"")}</textarea>${blocks}</div>`;
+    <button type="button" class="favb" aria-pressed="${!!st.fav}" aria-label="${esc(t("favorite"))}" title="${esc(t("favorite"))}">${st.fav?"★":"☆"}</button>
+    <button type="button" class="x" aria-label="${esc(t("close"))}">×</button></div><div class="tb">
+    <div class="acts"><button type="button" class="vis" aria-pressed="${!!st.visited}">${st.visited?t("visited"):t("mark_visited")}</button>
+      <span class="rate" role="group" aria-label="${esc(t("your_rating"))}">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-label="${esc(t("n_of_5",{n}))}" aria-pressed="${(st.rating||0)>=n}">★</button>`).join("")}</span></div>
+    <textarea class="note" rows="2" placeholder="${esc(t("notes_placeholder"))}" aria-label="${esc(t("notes_placeholder"))}">${esc(st.note||"")}</textarea>${blocks}</div>`;
   tip.querySelector(".favb").addEventListener("click",e=>{ const on=!roomState(r).fav; setRoom(r,{fav:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?"★":"☆"; refresh(); });
   tip.querySelector(".note").addEventListener("input",e=>setRoom(r,{note:e.target.value}));
-  tip.querySelector(".vis").addEventListener("click",e=>{ const on=!roomState(r).visited; setRoom(r,{visited:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?"✓ Visited":"Mark visited"; refresh(); });
+  tip.querySelector(".vis").addEventListener("click",e=>{ const on=!roomState(r).visited; setRoom(r,{visited:on}); e.currentTarget.setAttribute("aria-pressed",on); e.currentTarget.textContent=on?t("visited"):t("mark_visited"); refresh(); });
   tip.querySelectorAll(".rate button").forEach(b=>b.addEventListener("click",()=>{
     const n=+b.dataset.n, v = roomState(r).rating===n ? 0 : n; setRoom(r,{rating:v});
     tip.querySelectorAll(".rate button").forEach(x=>x.setAttribute("aria-pressed", v>=+x.dataset.n)); }));
@@ -324,16 +336,16 @@ function refresh(){
   });
   const h=document.getElementById("hits");
   if(!q){ h.innerHTML=""; }
-  else if(!hits.length){ h.innerHTML=`<span class="none">No room matches “${esc(q)}”.</span>`; }
+  else if(!hits.length){ h.innerHTML=`<span class="none">${esc(t("no_matches",{q:esc(q)}))}</span>`; }
   else{
-    h.innerHTML = `<span class="count">${hits.length} room${hits.length>1?"s":""}:</span>` + hits.map(r=>`<button type="button" data-go="${esc(r)}">${esc(rname(r))}</button>`).join("");
+    h.innerHTML = `<span class="count">${esc(t("hits_count",{n:hits.length,noun:noun("room",hits.length)}))}</span>` + hits.map(r=>`<button type="button" data-go="${esc(r)}">${esc(rname(r))}</button>`).join("");
     h.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go,true)));
   }
   if(sel && !tip.contains(document.activeElement)) select(sel,false);
   return hits;
 }
-let t;
-document.getElementById("q").addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(()=>{ const hits=refresh(); if(hits.length===1) select(hits[0],true); },120); });
+let searchTimer;
+document.getElementById("q").addEventListener("input",()=>{ clearTimeout(searchTimer); searchTimer=setTimeout(()=>{ const hits=refresh(); if(hits.length===1) select(hits[0],true); },120); });
 
 const zbox=document.getElementById("zones");
 if(FEATURES.zoneToggles) ZONES.forEach(z=>{
@@ -395,8 +407,8 @@ function renderFavs(){
   const all=Object.keys(spots), seen=all.filter(r=>roomState(r).visited).length, favSeen=rooms.filter(r=>roomState(r).visited).length;
   document.getElementById("progress").innerHTML = rooms.length||seen
     ? `<span class="pbar" style="--p:${rooms.length?favSeen/rooms.length*100:seen/all.length*100}%"></span>`+
-      (rooms.length?`${favSeen} of ${rooms.length} favorites visited · `:"")+`${seen} of ${all.length} rooms visited` : "";
-  if(!rooms.length){ list.innerHTML=`<li class="empty">Tap ☆ in a room's popup to add it here.</li>`; return; }
+      esc(rooms.length ? t("progress_fav",{favSeen,favTotal:rooms.length,seen,all:all.length}) : t("progress_all",{seen,all:all.length})) : "";
+  if(!rooms.length){ list.innerHTML=`<li class="empty">${esc(t("favs_empty"))}</li>`; return; }
   list.innerHTML = rooms.map(r=>{ const {z,exs}=ROOMS[r], st=roomState(r), brands=brandsOf(exs);
     const extra = (st.visited?" ✓":"")+(st.rating?" "+"★".repeat(st.rating):"");
     return `<li style="--zc:${z.color}" class="${st.visited?"visited":""}"><button type="button" data-go="${esc(r)}"><span class="fr">${esc(rname(r))}${extra?`<span class="fx">${extra}</span>`:""}</span>
@@ -413,6 +425,15 @@ function setTheme(t){
 }
 themeBtn.addEventListener("click",()=>setTheme(themeBtn.dataset.t==="dark"?"light":"dark"));
 
+/* ---------- language ---------- */
+const langBtn=document.getElementById("lang");
+langBtn.addEventListener("click",()=>setLang(LANG==="nl"?"en":"nl"));
+function onLangChange(){
+  relabelRooms();
+  if(sel) select(sel,false);
+  refresh(); renderFavs();
+}
+
 /* ---------- share & export ---------- */
 const msg = text => { const m=document.getElementById("msg"); m.textContent=text; clearTimeout(msg.t); msg.t=setTimeout(()=>m.textContent="",6000); };
 function download(name, text, type){
@@ -420,40 +441,22 @@ function download(name, text, type){
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 document.getElementById("share").addEventListener("click", async ()=>{
-  const favs=favList(); if(!favs.length) return msg("Add some favorites first.");
+  const favs=favList(); if(!favs.length) return msg(t("add_favs_first"));
   const url = location.href.split("#")[0] + "#fav=" + favs.map(encodeURIComponent).join(",");
   try{
-    if(navigator.share) await navigator.share({title:"My DAE 2026 favorites", url});
-    else { await navigator.clipboard.writeText(url); msg("Link copied. Anyone who opens it can add your favorites."); }
-  }catch(e){ if(e.name!=="AbortError") prompt("Copy this link:", url); }
+    if(navigator.share) await navigator.share({title:t("share_title"), url});
+    else { await navigator.clipboard.writeText(url); msg(t("link_copied")); }
+  }catch(e){ if(e.name!=="AbortError") prompt(t("copy_this_link"), url); }
 });
 function importSharedFavs(){
   const m=location.hash.match(/^#fav=(.+)$/); if(!m) return;
   history.replaceState(null,"",location.pathname+location.search);
   const dec = s => { try{ return decodeURIComponent(s); }catch(e){ return null; } };
   const add=[...new Set(m[1].split(",").map(dec))].filter(r=>r && ROOMS[r] && !roomState(r).fav);
-  if(add.length && confirm(`Add ${add.length} shared favorite${add.length>1?"s":""} (${add.map(rname).join(", ")})?`)){
-    add.forEach(r=>setRoom(r,{fav:true})); refresh(); msg(`Added ${add.length} favorite${add.length>1?"s":""}.`);
+  if(add.length && confirm(t("add_shared_favs_confirm",{n:add.length, noun:noun("favorite",add.length), list:add.map(rname).join(", ")}))){
+    add.forEach(r=>setRoom(r,{fav:true})); refresh(); msg(t("added_favs",{n:add.length, noun:noun("favorite",add.length)}));
   }
 }
-const withData = () => Object.keys(spots).sort(byOrder).map(r=>({r, st:roomState(r), ...ROOMS[r]})).filter(x=>Object.keys(x.st).length);
-document.getElementById("expmd").addEventListener("click",()=>{
-  const rs=withData(); if(!rs.length) return msg("Nothing to export yet.");
-  const md = "# Dutch Audio Event 2026: my notes\n\n" + rs.map(({r,st,z,exs})=>
-    `## ${rname(r)} (${z.name})${st.fav?" ★":""}\n\n`+
-    exs.map(e=>`- **${e}**: ${(EX[e]||[]).join(", ")||"no brands listed"}${URL_EX[e]?` ([page](${URL_EX[e]}))`:""}`).join("\n")+"\n\n"+
-    (st.visited?"Visited. ":"")+(st.rating?"Rating: "+"★".repeat(st.rating)+"☆".repeat(5-st.rating):"")+(st.visited||st.rating?"\n\n":"")+
-    (st.note?st.note+"\n\n":"")).join("");
-  download("dae2026-notes.md", md, "text/markdown");
-});
-document.getElementById("expcsv").addEventListener("click",()=>{
-  const rs=withData(); if(!rs.length) return msg("Nothing to export yet.");
-  // Prefix cells that spreadsheets would evaluate as formulas.
-  const q=v=>{ let s=String(v??""); if(/^[=+\-@\t\r]/.test(s)) s="'"+s; return `"${s.replace(/"/g,'""')}"`; };
-  const csv=["room,zone,favorite,visited,rating,exhibitors,brands,note"].concat(rs.map(({r,st,z,exs})=>
-    [r,z.name,st.fav?1:0,st.visited?1:0,st.rating||"",exs.join("; "),brandsOf(exs).join("; "),st.note].map(q).join(","))).join("\r\n");
-  download("dae2026-notes.csv", "﻿"+csv, "text/csv");
-});
 const BACKUP_VERSION = 1;
 // Keeps only well-formed per-room fields; rooms left with nothing are dropped.
 function cleanRooms(src){
@@ -472,27 +475,41 @@ function cleanRooms(src){
 const backupPayload = () => ({app:"daem-2026", version:BACKUP_VERSION, rooms:store.get("rooms")||{}});
 // Validates a parsed backup and returns its cleaned rooms; throws with a user-readable reason.
 function parseBackup(data){
-  if(!data || data.app!=="daem-2026" || !data.rooms || typeof data.rooms!=="object" || Array.isArray(data.rooms)) throw new Error("not a DAE 2026 backup");
-  if(data.version>BACKUP_VERSION) throw new Error("this backup is from a newer version of the app");
+  if(!data || data.app!=="daem-2026" || !data.rooms || typeof data.rooms!=="object" || Array.isArray(data.rooms)) throw new Error(t("err_not_backup"));
+  if(data.version>BACKUP_VERSION) throw new Error(t("err_newer_backup"));
   return cleanRooms(data.rooms);
 }
 // Asks first, then replaces current favorites, notes and ratings. Returns true if applied.
 function restoreRooms(rooms, source){
   const n=Object.keys(rooms).length;
-  if(!confirm(`Restore ${n} room${n!==1?"s":""} from ${source}? This replaces your current favorites, notes and ratings.`)) return false;
+  if(!confirm(t("restore_confirm",{n, noun:noun("room",n), source}))) return false;
   store.set("rooms", rooms);
-  Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); msg("Backup restored.");
+  Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); msg(t("backup_restored"));
   return true;
 }
-document.getElementById("expjson").addEventListener("click",()=>{
-  download("dae2026-backup.json", JSON.stringify(backupPayload(),null,2), "application/json");
+const impjson = document.getElementById("impjson");
+const backupSel = document.getElementById("backup"), restoreSel = document.getElementById("restore");
+if(!(FEATURES.cloudBackup && GDRIVE_CLIENT_ID)){
+  document.getElementById("backupDrive").remove();
+  document.getElementById("restoreDrive").remove();
+}
+backupSel.addEventListener("change",()=>{
+  const v=backupSel.value; backupSel.value="";
+  if(v==="local") download("dae2026-backup.json", JSON.stringify(backupPayload(),null,2), "application/json");
+  else if(v==="drive"){ if(window.cloudBackup) window.cloudBackup(); else msg(t("drive_loading")); }
 });
-document.getElementById("impjson").addEventListener("change", async e=>{
+restoreSel.addEventListener("change",()=>{
+  const v=restoreSel.value; restoreSel.value="";
+  if(v==="local") impjson.click();
+  else if(v==="drive"){ if(window.cloudRestore) window.cloudRestore(); else msg(t("drive_loading")); }
+});
+impjson.addEventListener("change", async e=>{
   const f=e.target.files[0]; e.target.value=""; if(!f) return;
-  try{ restoreRooms(parseBackup(JSON.parse(await f.text())), "this backup"); }
-  catch(err){ msg("Could not read that file: "+err.message); }
+  try{ restoreRooms(parseBackup(JSON.parse(await f.text())), t("this_backup_source")); }
+  catch(err){ msg(t("file_read_error",{msg:err.message})); }
 });
 
+applyI18n();
 // First visit follows the system setting; after that the user's choice sticks.
 { const t=store.get("theme"); setTheme(t==="light"||t==="dark" ? t : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
 setHi(store.get("hd")!==false);

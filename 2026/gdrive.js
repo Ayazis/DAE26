@@ -8,7 +8,7 @@
 
   const loadGis = () => gisLoading ||= new Promise((ok,fail)=>{
     const s=document.createElement("script"); s.src="https://accounts.google.com/gsi/client";
-    s.onload=ok; s.onerror=()=>{ gisLoading=null; fail(new Error("Google sign-in is unavailable (offline?)")); };
+    s.onload=ok; s.onerror=()=>{ gisLoading=null; fail(new Error(t("drive_signin_unavailable"))); };
     document.head.appendChild(s);
   });
   // Must be called straight from a click so the browser allows the sign-in popup.
@@ -18,17 +18,17 @@
     return new Promise((ok,fail)=>{
       tokenClient ||= google.accounts.oauth2.initTokenClient({client_id:GDRIVE_CLIENT_ID, scope:SCOPE, callback:()=>{}});
       tokenClient.callback = r=>{
-        if(r.error) return fail(new Error(r.error==="access_denied"?"sign-in cancelled":r.error));
+        if(r.error) return fail(new Error(r.error==="access_denied"?t("drive_signin_cancelled"):r.error));
         token=r.access_token; expires=Date.now()+(r.expires_in-60)*1000; ok(token);
       };
-      tokenClient.error_callback = e=>fail(new Error(e.type==="popup_closed"?"sign-in cancelled":"sign-in failed"));
+      tokenClient.error_callback = e=>fail(new Error(e.type==="popup_closed"?t("drive_signin_cancelled"):t("drive_signin_failed")));
       tokenClient.requestAccessToken({prompt:token===null && !store.get("cloudSeen") ? "consent" : ""});
     });
   }
   async function drive(url, opts={}){
     const res=await fetch(url,{...opts, headers:{Authorization:"Bearer "+token, ...opts.headers}});
-    if(res.status===401){ token=null; throw new Error("session expired, try again"); }
-    if(!res.ok) throw new Error("Google Drive error "+res.status);
+    if(res.status===401){ token=null; throw new Error(t("drive_session_expired")); }
+    if(!res.ok) throw new Error(t("drive_error",{status:res.status}));
     return res;
   }
   async function findFile(){
@@ -44,7 +44,7 @@
     // Another device backed up since this one last synced: don't silently overwrite it.
     const last=store.get("cloudSync");
     if(file && (!last || Date.parse(file.modifiedTime)>last+1000) &&
-       !confirm(`A backup from ${when(file.modifiedTime)} already exists in Google Drive and is newer than this device's last sync. Replace it with this device's data?`)) return;
+       !confirm(t("drive_replace_confirm",{when:when(file.modifiedTime)}))) return;
     if(file) await drive(`${UPLOAD}/${file.id}?uploadType=media`,{method:"PATCH", headers:{"Content-Type":"application/json"}, body});
     else{
       const b="dae"+Date.now();
@@ -52,27 +52,19 @@
         body:`--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({name:FILE,parents:["appDataFolder"]})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`});
     }
     store.set("cloudSeen",true); store.set("cloudSync",Date.now());
-    msg("Backed up to Google Drive at "+new Date().toLocaleTimeString([], {timeStyle:"short"})+".");
+    msg(t("drive_backed_up",{time:new Date().toLocaleTimeString([], {timeStyle:"short"})}));
   }
   async function restore(){
     await getToken();
     const file=await findFile();
-    if(!file) return msg("No backup found in Google Drive yet.");
+    if(!file) return msg(t("drive_no_backup"));
     const rooms=parseBackup(await (await drive(`${API}/${file.id}?alt=media`)).json());
     store.set("cloudSeen",true);
-    if(restoreRooms(rooms, "the Google Drive backup from "+when(file.modifiedTime))) store.set("cloudSync",Date.now());
+    if(restoreRooms(rooms, t("drive_backup_source",{when:when(file.modifiedTime)}))) store.set("cloudSync",Date.now());
   }
-  function disconnect(){
-    if(token && window.google) google.accounts.oauth2.revoke(token);
-    token=null; expires=0; store.set("cloudSeen",false); store.set("cloudSync",null);
-    msg("Disconnected. Your backup stays in Google Drive's hidden app data; local data is untouched.");
-  }
-
   // Wrap so any failure surfaces as a message and never breaks the rest of the app.
-  const run = fn => async()=>{ try{ await fn(); }catch(e){ msg("Google Drive: "+e.message+"."); } };
-  const row=document.querySelector(".tools .row");
-  [["Back up to Google Drive",backup],["Restore from Google Drive",restore],["Disconnect Google Drive",disconnect]].forEach(([label,fn])=>{
-    const b=document.createElement("button"); b.type="button"; b.className="tog"; b.textContent=label;
-    b.addEventListener("click",run(fn)); row.appendChild(b);
-  });
+  const run = fn => async()=>{ try{ await fn(); }catch(e){ msg(t("drive_error_msg",{msg:e.message})); } };
+  // Picked up by the Backup/Restore buttons in app.js, which offer Google Drive only once this is set.
+  window.cloudBackup = run(backup);
+  window.cloudRestore = run(restore);
 })();
