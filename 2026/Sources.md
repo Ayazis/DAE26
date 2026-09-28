@@ -98,7 +98,7 @@ sourcedata/
 ### Cross-check of the 28 Sep 2026 scrape against `data.js`
 
 - **Rooms:** every exhibitor's room(s) and zone match. The site spells some rooms differently ("Gallerij" for SPL electronics, "Holland Foyer Headspace", "Groningen foyer" versus HiFi.nl's "Groningenzaal").
-- **D&D Audio:** `URL_EX` points to `/daudio-exposant` (the *Daudio* page, room 19). D&D Audio has its own page, https://dutchaudioevent.nl/d-d-audio (room 63). This needs fixing in `data.js`.
+- **D&D Audio:** `URL_EX` pointed to `/daudio-exposant` (the *Daudio* page, room 19) instead of https://dutchaudioevent.nl/d-d-audio (room 63). Fixed in `data.js`.
 - **STUdo-Hifi** has its own exhibitor page (https://dutchaudioevent.nl/studo-hifi) next to horn-kultur; `data.js` combines them as one entry.
 - **Brands:** `EX` lists more brands than the exhibitor pages (for example Reference Sounds, Terrason Audio, Music2). These came from the exhibitor descriptions and brand pages, so the site's `brands` cards are a subset, not a replacement. Spelling differs in places (for example "Inakustik" vs "In-Akustik", "Quad" vs "QUAD").
 - **Categories:** all 300 brands have a `DAE 2026` tag, and most have one or more product categories: versterkers (92), Luidsprekers (84), Audio accessoires (40), dac (36), audio streamers (36), kabels (26), platenspelers (24), CD spelers (24), koptelefoons (16), draadloze speakers (15), stroomvoorziening (12), subwoofers (11), portable audio (7), akoestiek (5), Netwerk apparatuur (3), Beeld (3), Sponsors (4). That covers what the Phase 3 category filter needs.
