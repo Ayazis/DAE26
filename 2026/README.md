@@ -15,7 +15,7 @@ Serve the folder over HTTP to test locally (the service worker needs it), for ex
 
 User data (favorites, notes, visited, ratings, settings) is stored in `localStorage` under `daem-2026-v1`.
 
-Data collected from dutchaudioevent.nl on 26 Sep 2026. To move a room, edit its `BOX` entry. To change the building outline or icons, edit `plan.js` (units: `plan.jpg` scaled to 2000 px wide).
+Data collected from dutchaudioevent.nl on 26 Sep 2026. All sources, raw snapshots and the refresh script are listed in [Sources.md](Sources.md). To move a room, edit its `BOX` entry. To change the building outline or icons, edit `plan.js` (units: `plan.jpg` scaled to 2000 px wide).
 
 ## Optional Google Drive backup (feature flag)
 

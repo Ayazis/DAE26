@@ -431,3 +431,8 @@ FodyWeavers.xsd
 # Playwright
 test-results/
 playwright-report/
+
+# Raw HTML cache of 2026/sourcedata/scrape.py (re-parse with --offline)
+2026/sourcedata/.cache/
+# HiFi.nl article text (copyrighted); regenerate with scrape.py --only hifi
+2026/sourcedata/hifi.nl/
