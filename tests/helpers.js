@@ -37,9 +37,9 @@ function answerDialog(page, accept) {
   }));
 }
 
-// Clicks a download button and returns {name, text}.
-async function download(page, selector) {
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click(selector)]);
+// Picks "Save to a local file" in the Backup menu and returns the downloaded {name, text}.
+async function download(page) {
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.selectOption("#backup", "local")]);
   return { name: dl.suggestedFilename(), text: fs.readFileSync(await dl.path(), "utf8") };
 }
 

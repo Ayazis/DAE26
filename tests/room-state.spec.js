@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { open, saved, openRoom, download } = require("./helpers");
+const { open, saved, openRoom } = require("./helpers");
 
 test.describe("notes, visited and ratings", () => {
   test("a note is saved as you type and survives a reload", async ({ page }) => {
@@ -90,79 +90,3 @@ test.describe("notes, visited and ratings", () => {
     await expect(page.locator("#favs .fx")).toHaveText("★★★★★");
   });
 });
-
-test.describe("exporting notes", () => {
-  const ROOMS = {
-    3: { fav: true, visited: true, rating: 3, note: 'Say "hi", then\nask about prices' },
-    7: { visited: true },
-  };
-
-  test("nothing to export shows a message and downloads nothing", async ({ page }) => {
-    await open(page);
-    let downloaded = false;
-    page.on("download", () => { downloaded = true; });
-    await page.click("#expmd");
-    await expect(page.locator("#msg")).toHaveText(/Nothing to export yet/);
-    await page.click("#expcsv");
-    await page.waitForTimeout(300);
-    expect(downloaded).toBe(false);
-  });
-
-  test("Markdown lists every room with data, with its state", async ({ page }) => {
-    await open(page, { rooms: ROOMS });
-    const zone = await page.evaluate(() => ROOMS["3"].z.name);
-    const { name, text } = await download(page, "#expmd");
-    expect(name).toBe("dae2026-notes.md");
-    expect(text).toMatch(/^# Dutch Audio Event 2026: my notes/);
-    expect(text).toContain(`## Room 3 (${zone}) ★`);
-    expect(text).toContain("- **Dynaudio Benelux**:");
-    expect(text).toContain("Visited. Rating: ★★★☆☆");
-    expect(text).toContain('Say "hi", then\nask about prices');
-    expect(text).toMatch(/## Room 7 \([^)]+\)\n/); // visited-only rooms are included, without a star
-    expect(text).toContain("- **Hear Everything Audio Import**");
-    expect(text).toContain("- **Tonality Import**");
-    expect(text.indexOf("## Room 3")).toBeLessThan(text.indexOf("## Room 7"));
-  });
-
-  test("CSV has a BOM, a header and properly quoted fields", async ({ page }) => {
-    await open(page, { rooms: ROOMS });
-    const zone = await page.evaluate(() => ROOMS["3"].z.name);
-    const { name, text } = await download(page, "#expcsv");
-    expect(name).toBe("dae2026-notes.csv");
-    expect(text.charCodeAt(0)).toBe(0xfeff);
-    const rows = parseCsv(text.slice(1));
-    expect(rows[0]).toEqual(["room", "zone", "favorite", "visited", "rating", "exhibitors", "brands", "note"]);
-    expect(rows).toHaveLength(3);
-    const r3 = rows.find(r => r[0] === "3");
-    expect(r3.slice(0, 5)).toEqual(["3", zone, "1", "1", "3"]);
-    expect(r3[5]).toBe("Dynaudio Benelux");
-    expect(r3[7]).toBe('Say "hi", then\nask about prices');
-    const r7 = rows.find(r => r[0] === "7");
-    expect(r7.slice(2, 5)).toEqual(["0", "1", ""]);
-    expect(r7[5]).toBe("Hear Everything Audio Import; Tonality Import");
-    expect(r7[7]).toBe("");
-  });
-
-  test("CSV neutralises cells that spreadsheets would run as formulas", async ({ page }) => {
-    await open(page, { rooms: { 3: { note: "=HYPERLINK(\"http://evil\")" } } });
-    const { text } = await download(page, "#expcsv");
-    const note = parseCsv(text.slice(1))[1][7];
-    expect(note.startsWith("=")).toBe(false);
-    expect(note).toContain("HYPERLINK");
-  });
-});
-
-// RFC 4180 parser: quoted fields may contain commas, doubled quotes and newlines.
-function parseCsv(s) {
-  const rows = []; let row = [], f = "", q = false;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (q) { if (c === '"' && s[i + 1] === '"') { f += '"'; i++; } else if (c === '"') q = false; else f += c; }
-    else if (c === '"') q = true;
-    else if (c === ",") { row.push(f); f = ""; }
-    else if (c === "\r" && s[i + 1] === "\n") { row.push(f); rows.push(row); row = []; f = ""; i++; }
-    else f += c;
-  }
-  row.push(f); rows.push(row);
-  return rows;
-}

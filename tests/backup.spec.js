@@ -10,14 +10,14 @@ const DATA = {
 test.describe("backup", () => {
   test("downloads all room data as versioned JSON", async ({ page }) => {
     await open(page, { rooms: DATA });
-    const { name, text } = await download(page, "#expjson");
+    const { name, text } = await download(page);
     expect(name).toBe("dae2026-backup.json");
     expect(JSON.parse(text)).toEqual({ app: "daem-2026", version: 1, rooms: DATA });
   });
 
   test("works with no data yet", async ({ page }) => {
     await open(page);
-    const { text } = await download(page, "#expjson");
+    const { text } = await download(page);
     expect(JSON.parse(text).rooms).toEqual({});
   });
 });
@@ -62,7 +62,7 @@ test.describe("restore", () => {
 
   test("round trip: backup, change everything, restore", async ({ page }) => {
     await open(page, { rooms: DATA });
-    const { text } = await download(page, "#expjson");
+    const { text } = await download(page);
     await openRoom(page, "3");
     await page.click("#tip .favb");
     await page.fill("#tip .note", "changed");
