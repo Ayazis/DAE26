@@ -88,7 +88,7 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .corr{fill:var(--zc)}
 .room .rbox{fill:var(--room);stroke:var(--wall);stroke-width:1.5;transition:fill .15s}
 .room.hall .rbox{fill:color-mix(in srgb,var(--zc,var(--grey)) 30%,var(--room))}
-.room.empty .rbox{fill:var(--grey)}
+.room.empty .rbox,.room.unused .rbox{fill:var(--grey)}
 .room[tabindex]{cursor:pointer;outline:none}
 .room[tabindex]:hover .rbox{fill:color-mix(in srgb,var(--zc) 22%,var(--room))}
 .room[tabindex]:focus-visible .rbox{stroke:var(--blue);stroke-width:4}
@@ -119,6 +119,7 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .exn{display:flex;align-items:baseline;gap:8px;justify-content:space-between;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .ext{font-size:12px;font-weight:600;white-space:nowrap;text-transform:none;letter-spacing:0;color:var(--blue)}
 .brands{font-weight:500;margin-top:2px;font-size:14px}
+.tip .tb>.none{color:var(--muted);font-style:italic;margin:6px 0 0}
 .brands .none{color:var(--muted);font-style:italic;font-weight:400}
 .also{font-size:12.5px;color:var(--muted);margin-top:2px}
 .also button{font:inherit;border:0;background:none;color:var(--blue);padding:0;cursor:pointer;text-decoration:underline}
@@ -126,7 +127,6 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .star{fill:var(--star);text-anchor:end;dominant-baseline:hanging;display:none;pointer-events:none;paint-order:stroke;stroke:var(--room);stroke-width:2px}
 .rbrand{fill:var(--muted);text-anchor:middle;dominant-baseline:central;font-weight:500;pointer-events:none}
 .room.fav .star{display:inline}
-.room.has-brand .rlabel{transform:translateY(-.3em);transform-box:fill-box}
 .tip .favb{font:inherit;font-size:22px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
 .tip .favb[aria-pressed="true"]{color:var(--star)}
 .tip .favb+.x{margin-left:4px}

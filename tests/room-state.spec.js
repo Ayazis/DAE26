@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { open, saved, openRoom } = require("./helpers");
+const { open, saved, openRoom, answerDialog } = require("./helpers");
 
 test.describe("notes, visited and ratings", () => {
   test("a note is saved as you type and survives a reload", async ({ page }) => {
@@ -89,4 +89,15 @@ test.describe("notes, visited and ratings", () => {
     await expect(page.locator("#favs .fn")).toHaveText("live");
     await expect(page.locator("#favs .fx")).toHaveText("★★★★★");
   });
+});
+
+test("rooms without exhibitors open as not in use and can't be favorited", async ({ page }) => {
+  const asked = answerDialog(page, true);
+  await open(page, { hash: "#fav=50,3" }); // a shared link can't smuggle one in either
+  expect(await asked).not.toContain("Room 50");
+  expect(Object.keys(await saved(page))).toEqual(["3"]);
+  await openRoom(page, "50");
+  await expect(page.locator("#tip .tb")).toHaveText("Not in use");
+  await expect(page.locator("#tip .favb, #tip .note, #tip .vis")).toHaveCount(0);
+  await expect(page.locator(".room[data-r='50']")).toHaveClass(/\bunused\b/);
 });

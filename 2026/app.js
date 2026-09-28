@@ -24,6 +24,8 @@ function setRoom(r, patch){
 
 const ROOMS = {}; // name -> {z, exs}
 ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>{ ROOMS[r] = {z, exs}; }));
+// Rooms listed without exhibitors are shown and clickable, but marked "not in use" and can't be favorited or noted.
+const inUse = r => ROOMS[r].exs.length>0;
 const WHERE = {};
 ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>exs.forEach(e=>(WHERE[e] ||= []).push(r))));
 
@@ -67,39 +69,71 @@ PLAN.slants.forEach(([z,pts])=>el("polygon",{points:pts,class:"corr z-"+z},L.cor
 
 // Rooms
 const spots = {};
-// First brand of the room's first exhibitor, trimmed to fit
-function headline(r,maxChars){
-  const e=ROOMS[r].exs[0], b=(EX[e]&&EX[e][0])||e;
-  const more = ROOMS[r].exs.reduce((n,x)=>n+((EX[x]||[]).length||1),0)-1;
-  let s = b + (more>0?" +"+more:"");
-  return s.length>maxChars ? s.slice(0,Math.max(3,maxChars-1))+"…" : s;
-}
+const brandsOf = exs => exs.flatMap(e=>EX[e]&&EX[e].length?EX[e]:[e]);
+const trim = (s,maxChars) => s.length>maxChars ? s.slice(0,Math.max(3,Math.floor(maxChars)-1))+"…" : s;
 const big = r => !isNum(r);
 Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
   const x=px*W/100, y=py*H/100, w=pw*W/100, h=ph*H/100;
   const info = ROOMS[r];
-  const g = el("g",{class:"room"+(info?" z-"+info.z.id:" empty")+(big(r)?" hall":""),"data-r":r},L.rooms);
+  const g = el("g",{class:"room"+(info?" z-"+info.z.id:" empty")+(info&&!inUse(r)?" unused":"")+(big(r)?" hall":""),"data-r":r},L.rooms);
   rect(x,y,w,h,"rbox",g);
   const vertical = !isNum(r) && h>w*1.6 && w<50; // room numbers always stay horizontal
   const label = isNum(r) ? r : r.replace(/ \(.*\)/,"").replace(/ foyer$/i," foyer");
-  const fs = Math.max(isNum(r)?5:8, Math.min(isNum(r)?16:13, (vertical?h:w)/(label.length*0.62), (vertical?w:h)*0.55));
+  const fsFit = Math.max(isNum(r)?5:8, Math.min(isNum(r)?16:13, (vertical?h:w)/(label.length*0.62), (vertical?w:h)*0.55));
   const cx=x+w/2, cy=y+h/2;
-  const t = el("text",{x:cx,y:cy,class:"rlabel","font-size":fs.toFixed(1),transform:vertical?`rotate(-90 ${cx} ${cy})`:""},g);
+  const t = el("text",{x:cx,y:cy,class:"rlabel","font-size":fsFit.toFixed(1),transform:vertical?`rotate(-90 ${cx} ${cy})`:""},g);
   t.textContent=label;
   if(info){
-    // Headline brand under the label is always shown; star and check in the corner only for favorites and visited rooms
-    el("text",{x:x+3,y:y+2,class:"check","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g).textContent="✓";
-    const st=el("text",{x:x+w-2,y:y+2,class:"star","font-size":Math.max(9,Math.min(15,w*.24,h*.4)).toFixed(1)},g); st.textContent="★";
-    if(!vertical && h>=fs*1.75){
-      el("text",{x:cx,y:cy+fs*0.62,class:"rbrand","font-size":Math.max(6,Math.min(fs*.55,w/9)).toFixed(1)},g).textContent=headline(r,w/(Math.max(6,Math.min(fs*.55,w/9))*0.55));
-    }
+    // Brand lines under the label are filled in per zoom level by layoutRooms; star and check in the corner only for favorites and visited rooms
+    const ifs = Math.max(9,Math.min(15,w*.24,h*.4));
+    const check=el("text",{x:x+3,y:y+2,class:"check","font-size":ifs.toFixed(1)},g); check.textContent="✓";
+    const star=el("text",{x:x+w-2,y:y+2,class:"star","font-size":ifs.toFixed(1)},g); star.textContent="★";
+    const brand = inUse(r) && !vertical ? el("text",{x:cx,class:"rbrand"},g) : null;
     g.setAttribute("tabindex","0"); g.setAttribute("role","button");
-    spots[r]={g,x,y,w,h};
-    if(g.querySelector(".rbrand")) g.classList.add("has-brand");
+    spots[r]={g,x,y,w,h,vertical,fsFit,ifs,label:t,check,star,brand,brands:brandsOf(info.exs)};
   }
 });
+/* Level of detail: zoomed out a room shows its number and one brand (+N). Zoomed in, text stops growing
+   on screen (it's capped at a pixel size) and the freed space fills with more brands. Once everything fits,
+   the text may grow again, up to its zoomed-out size in map units. k = px per svg unit. */
+const LABEL_PX=15, BRAND_PX=11, ICON_PX=13, MIN_READ_PX=8, MARKER_K=1.6;
+function layoutRooms(k){
+  Object.values(spots).forEach(s=>{
+    const {x,y,w,h,fsFit,brand,brands}=s, cx=x+w/2, cy=y+h/2;
+    let fs=Math.min(fsFit, LABEL_PX/k);
+    const ifs=Math.min(s.ifs, ICON_PX/k);
+    s.check.setAttribute("font-size",ifs.toFixed(2)); s.star.setAttribute("font-size",ifs.toFixed(2));
+    if(!brand){ s.label.setAttribute("font-size",fs.toFixed(2)); s.label.setAttribute("y",cy); return; }
+    const bfsMax=Math.max(6,Math.min(fsFit*.55,w/9));
+    let bfs=Math.min(bfsMax, BRAND_PX/k);
+    // Extra lines only once they're readable; below that, the one-line headline as before.
+    let n = bfs*k>=MIN_READ_PX ? Math.floor((h - 2*Math.max(2,bfs*.4) - fs*1.15)/bfs/1.2) : 0;
+    if(n<=1) n = h>=fs*1.75 ? 1 : 0;
+    const lines = n>=brands.length ? brands.slice() : brands.slice(0,n);
+    const more = n && n<brands.length ? " +"+(brands.length-n) : ""; // suffix of the last line, never trimmed away
+    if(lines.length===brands.length){
+      const longest=Math.max(...lines.map(l=>l.length));
+      const grow=Math.min(1.5, fsFit/fs, bfsMax/bfs, h*.85/(fs*1.15+lines.length*bfs*1.2), w*.85/(longest*bfs*.62));
+      if(grow>1){ fs*=grow; bfs*=grow; }
+    }
+    const lh=bfs*1.2, top = cy - (fs*1.15 + lines.length*lh)/2;
+    s.label.setAttribute("font-size",fs.toFixed(2));
+    s.label.setAttribute("y", lines.length ? top+fs*.575 : cy);
+    brand.setAttribute("font-size",bfs.toFixed(2));
+    brand.textContent="";
+    const maxChars = w/(bfs*0.55);
+    lines.forEach((line,i)=>{
+      const ts=el("tspan",{x:cx,y:(top+fs*1.15+lh*(i+.5)).toFixed(2)},brand);
+      ts.textContent = i===lines.length-1 && more ? trim(line,maxChars-more.length)+more : trim(line,maxChars);
+    });
+  });
+  // Facility icons, entrances and zone badges stop growing past MARKER_K px per unit.
+  const m=Math.min(1, MARKER_K/k);
+  markers.forEach(([g,x,y])=>g.setAttribute("transform",`translate(${x} ${y})`+(m<1?` scale(${m.toFixed(3)})`:"")));
+}
+const markers = []; // [g, x, y]
 function relabelRooms(){
-  Object.entries(spots).forEach(([r,s])=>s.g.setAttribute("aria-label", rname(r)+", "+ROOMS[r].exs.join(", ")));
+  Object.entries(spots).forEach(([r,s])=>s.g.setAttribute("aria-label", rname(r)+", "+(inUse(r)?ROOMS[r].exs.join(", "):t("not_in_use"))));
   iconTitles.forEach(([node,key])=>node.textContent=t(key));
 }
 
@@ -119,7 +153,7 @@ const ICON = {
 const ICON_NAME_KEY = {wc:"icon_wc", lift:"icon_lift", info:"icon_info", food:"icon_food", coat:"icon_coat", aid:"icon_aid"};
 const iconTitles = [];
 PLAN.icons.forEach(([k,x,y])=>{
-  const g=el("g",{class:"icon i-"+k,transform:`translate(${x} ${y})`},L.icons);
+  const g=el("g",{class:"icon i-"+k,transform:`translate(${x} ${y})`},L.icons); markers.push([g,x,y]);
   el("rect",{x:-9,y:-9,width:18,height:18,rx:4},g);
   g.insertAdjacentHTML("beforeend", ICON[k]);
   const title=el("title",{},g); title.textContent=t(ICON_NAME_KEY[k]);
@@ -127,7 +161,7 @@ PLAN.icons.forEach(([k,x,y])=>{
 });
 relabelRooms();
 PLAN.entrances.forEach(([x,y,dir,label])=>{
-  const g=el("g",{class:"entrance",transform:`translate(${x} ${y})`},L.icons);
+  const g=el("g",{class:"entrance",transform:`translate(${x} ${y})`},L.icons); markers.push([g,x,y]);
   el("rect",{x:-20,y:-20,width:40,height:40,rx:7},g);
   el("path",{d:"M0 11L-10 0h6v-10h8V0h6z",transform:dir==="left"?"rotate(90)":""},g);
   const t=el("text",{x:dir==="left"?28:0,y:dir==="left"?5:-30,class:"elabel","text-anchor":dir==="left"?"start":"middle"},g);
@@ -136,7 +170,7 @@ PLAN.entrances.forEach(([x,y,dir,label])=>{
 // Zone badge names on the floor plan itself are always Dutch (the venue's own zone names), independent of UI language.
 const ZNL={yellow:"gele zone",green:"groene zone",blue:"blauwe zone",red:"rode zone"};
 PLAN.badges.forEach(([z,x,y])=>{
-  const g=el("g",{class:"badge z-"+z,transform:`translate(${x} ${y})`},L.icons);
+  const g=el("g",{class:"badge z-"+z,transform:`translate(${x} ${y})`},L.icons); markers.push([g,x,y]);
   el("rect",{x:-40,y:-19,width:80,height:38,rx:6},g);
   const t=el("text",{x:0,y:1},g); t.textContent=ZNL[z];
 });
@@ -144,11 +178,20 @@ PLAN.badges.forEach(([z,x,y])=>{
 /* ---------- pan & zoom (viewBox) ---------- */
 const FIT = {x:40, y:150, w:1680, h:1390};
 let vb = {...FIT};
-const MINW=160, MAXW=2600;
+const MINW=80, MAXW=2600;
 function applyVB(){
   svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
-  svg.classList.toggle("near", pxPerUnit()>1.1);
+  relayout();
   placeTip();
+}
+// Room text is rebuilt only when the zoom crosses a quarter-octave step, not on every pinch frame.
+let lodStep=null, lodFrame=0;
+function relayout(){
+  const k=pxPerUnit(); if(!(k>0)) return;
+  const step=Math.round(Math.log2(k)*4);
+  if(step===lodStep) return;
+  lodStep=step; cancelAnimationFrame(lodFrame);
+  lodFrame=requestAnimationFrame(()=>layoutRooms(2**(step/4)));
 }
 // px per svg unit, taking preserveAspectRatio=meet into account
 function pxPerUnit(){ return Math.min(box.clientWidth/vb.w, box.clientHeight/vb.h); }
@@ -278,6 +321,15 @@ function select(r, move){
     return `<div class="ex"><div class="exn"><span>${hl(e,q)}</span>${link}</div><div class="brands">${b}</div>${also}</div>`;
   }).join("");
   tip.style.setProperty("--zc", z.color);
+  if(!inUse(r)){
+    tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>
+      <button type="button" class="x" aria-label="${esc(t("close"))}">×</button></div><div class="tb"><p class="none">${esc(t("not_in_use"))}</p></div>`;
+    tip.querySelector(".x").addEventListener("click",closeTip);
+    tip.hidden=false;
+    if(move) focusRoom(r);
+    placeTip();
+    return;
+  }
   const st=roomState(r);
   tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>
     <button type="button" class="favb" aria-pressed="${!!st.fav}" aria-label="${esc(t("favorite"))}" title="${esc(t("favorite"))}">${st.fav?"★":"☆"}</button>
@@ -409,12 +461,11 @@ function paintRoom(r){
 }
 const ORDER = {}; ZONES.forEach((z,zi)=>z.rooms.forEach(([r],ri)=>ORDER[r]=zi*1000+(isNum(r)?+r:500+ri)));
 const byOrder = (a,b)=>ORDER[a]-ORDER[b];
-const favList = () => Object.keys(store.get("rooms")||{}).filter(r=>ROOMS[r] && roomState(r).fav).sort(byOrder);
-const brandsOf = exs => exs.flatMap(e=>EX[e]&&EX[e].length?EX[e]:[e]);
+const favList = () => Object.keys(store.get("rooms")||{}).filter(r=>ROOMS[r] && inUse(r) && roomState(r).fav).sort(byOrder);
 function renderFavs(){
   const list=document.getElementById("favs"), rooms=favList();
   document.getElementById("favcount").textContent = rooms.length ? `(${rooms.length})` : "";
-  const all=Object.keys(spots), seen=all.filter(r=>roomState(r).visited).length, favSeen=rooms.filter(r=>roomState(r).visited).length;
+  const all=Object.keys(spots).filter(inUse), seen=all.filter(r=>roomState(r).visited).length, favSeen=rooms.filter(r=>roomState(r).visited).length;
   document.getElementById("progress").innerHTML = rooms.length||seen
     ? `<span class="pbar" style="--p:${rooms.length?favSeen/rooms.length*100:seen/all.length*100}%"></span>`+
       esc(rooms.length ? t("progress_fav",{favSeen,favTotal:rooms.length,seen,all:all.length}) : t("progress_all",{seen,all:all.length})) : "";
@@ -463,7 +514,7 @@ function importSharedFavs(){
   const m=location.hash.match(/^#fav=(.+)$/); if(!m) return;
   history.replaceState(null,"",location.pathname+location.search);
   const dec = s => { try{ return decodeURIComponent(s); }catch(e){ return null; } };
-  const add=[...new Set(m[1].split(",").map(dec))].filter(r=>r && ROOMS[r] && !roomState(r).fav);
+  const add=[...new Set(m[1].split(",").map(dec))].filter(r=>r && ROOMS[r] && inUse(r) && !roomState(r).fav);
   if(add.length && confirm(t("add_shared_favs_confirm",{n:add.length, noun:noun("favorite",add.length), list:add.map(rname).join(", ")}))){
     add.forEach(r=>setRoom(r,{fav:true})); refresh(); msg(t("added_favs",{n:add.length, noun:noun("favorite",add.length)}));
   }
