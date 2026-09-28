@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-i18n-title="tos_title">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,28 +7,32 @@
 <style>
 :root{color-scheme:light dark}
 body{font:16px/1.6 system-ui,sans-serif;max-width:42rem;margin:0 auto;padding:24px 16px 48px}
+.top{display:flex;justify-content:flex-end}.top button{font:inherit;font-size:14px;padding:4px 12px;border-radius:999px;border:1px solid currentColor;background:none;color:inherit;cursor:pointer}
 h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:2rem}
 </style>
 </head>
 <body>
-<h1>Terms of service</h1>
-<p><strong>DAE 2026 Floor Map</strong> is a free, unofficial floor map for the Dutch Audio Event 2026. It is not affiliated with, or endorsed by, the event organisers. Last updated: 26 September 2026.</p>
+<div class="top"><button type="button" id="lang" title="Switch to Dutch">NL</button></div>
+<h1 data-i18n="tos_h1">Terms of service</h1>
+<p data-i18n-html="tos_intro_html"><strong>DAE 2026 Floor Map</strong> is a free, unofficial floor map for the Dutch Audio Event 2026. It is not run by the event organisers, but is shared with their explicit permission. Last updated: 28 September 2026.</p>
 
-<h2>Use of the app</h2>
-<p>You may use the app free of charge for personal purposes. It is provided "as is", without warranties of any kind. Room and exhibitor information is collected from the event's public website and may be incomplete or out of date; check <a href="https://dutchaudioevent.nl/merken" rel="noopener">dutchaudioevent.nl</a> for the latest details.</p>
+<h2 data-i18n="tos_use_h">Use of the app</h2>
+<p data-i18n-html="tos_use_html">You may use the app free of charge for personal purposes. It is provided "as is", without warranties of any kind. Room and exhibitor information is collected from the event's public website and may be incomplete or out of date; check <a href="https://dutchaudioevent.nl/merken" rel="noopener">dutchaudioevent.nl</a> for the latest details.</p>
 
-<h2>Your data and backups</h2>
-<p>Your favorites and notes are stored in your own browser. The optional Google Drive backup copies them to a hidden folder in your own Google Drive, and only when you ask it to. You are responsible for keeping your own copies; the developer cannot recover lost data. See the <a href="privacy.html">privacy policy</a> for details.</p>
+<h2 data-i18n="tos_data_h">Your data and backups</h2>
+<p data-i18n-html="tos_data_html">Your favorites and notes are stored in your own browser. The optional Google Drive backup copies them to a hidden folder in your own Google Drive, and only when you ask it to. You are responsible for keeping your own copies; the developer cannot recover lost data. See the <a href="privacy.html">privacy policy</a> for details.</p>
 
-<h2>Liability</h2>
-<p>To the extent permitted by law, the developer is not liable for any loss or damage arising from use of the app, including lost or corrupted data or incorrect event information.</p>
+<h2 data-i18n="tos_liab_h">Liability</h2>
+<p data-i18n="tos_liab">To the extent permitted by law, the developer is not liable for any loss or damage arising from use of the app, including lost or corrupted data or incorrect event information.</p>
 
-<h2>Changes and availability</h2>
-<p>The app or these terms may change, and the service may be withdrawn at any time, for example after the event.</p>
+<h2 data-i18n="tos_change_h">Changes and availability</h2>
+<p data-i18n="tos_change">The app or these terms may change, and the service may be withdrawn at any time, for example after the event.</p>
 
-<h2>Contact</h2>
+<h2 data-i18n="contact_h">Contact</h2>
 <p><strong>daemap26@outlook.com</strong></p>
 
-<p><a href="./">Back to the map</a></p>
+<p><a href="./" data-i18n="back_map">Back to the map</a></p>
+<script src="i18n.js"></script>
+<script src="legal.js"></script>
 </body>
 </html>

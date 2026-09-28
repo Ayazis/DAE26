@@ -1,4 +1,4 @@
-// EN/NL strings for the app UI. privacy.html and terms.html are not localized yet.
+// EN/NL strings for the app UI. Strings for privacy.html and terms.html live in legal.js.
 // t(key, vars) looks up the current language, falling back to English, and fills in {{name}} tokens.
 const I18N = {
   en: {
@@ -31,6 +31,7 @@ const I18N = {
 
     room_label: "Room {{n}}",
     icon_wc: "Toilets",
+    icon_lift: "Elevator",
     icon_info: "Info point",
     icon_food: "Catering",
     icon_coat: "Wardrobe",
@@ -109,6 +110,7 @@ const I18N = {
 
     room_label: "Kamer {{n}}",
     icon_wc: "Toiletten",
+    icon_lift: "Lift",
     icon_info: "Infopunt",
     icon_food: "Catering",
     icon_coat: "Garderobe",
@@ -186,7 +188,7 @@ function setLang(lang){
   if(typeof onLangChange==="function") onLangChange();
 }
 function applyI18n(){
-  document.title = t("title");
+  document.title = t(document.documentElement.dataset.i18nTitle || "title");
   document.querySelectorAll("[data-i18n]").forEach(n=>{ n.textContent = t(n.dataset.i18n); });
   document.querySelectorAll("[data-i18n-html]").forEach(n=>{ n.innerHTML = t(n.dataset.i18nHtml); });
   document.querySelectorAll("[data-i18n-attr]").forEach(n=>{

@@ -50,7 +50,13 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .fullbtn{position:absolute;top:8px;right:8px;z-index:3;width:36px;padding:8px 0;font-size:16px;line-height:1}
 .mapbox.full{position:fixed;inset:0;z-index:50;height:auto;min-height:0;border-radius:0;border:0}
 .mapbox.full .bar{position:absolute;top:0;left:0;right:0;z-index:10;margin:0;padding:8px 12px;box-shadow:0 1px 0 var(--line)}
-.mapbox.full .mapctl,.mapbox.full .fullbtn{top:calc(var(--barh,0px) + 8px)}
+.mapbox.full .mapctl,.mapbox.full .fullbtn,.mapbox.full .favmenubtn{top:calc(var(--barh,0px) + 8px)}
+.favmenubtn{display:none;position:absolute;top:8px;right:52px;z-index:3;padding:8px 10px;font-size:16px;line-height:1}
+.mapbox.full .favmenubtn{display:block}
+.mapbox:not(.full) .favpanel{display:none}
+.favpanel{position:absolute;top:calc(var(--barh,0px) + 52px);right:8px;z-index:4;width:min(340px,calc(100% - 16px));max-height:calc(100% - var(--barh,0px) - 64px);overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.favpanel[hidden]{display:none}
+.favpanel .favs{grid-template-columns:1fr}
 .mapctl .row{display:flex;gap:6px}
 .sw,.zones button.sw{font:inherit;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .sw::before{content:"";flex:none;width:30px;height:18px;border-radius:999px;background:radial-gradient(circle,#fff 6.5px,transparent 7.5px) left 2px center/18px 18px no-repeat var(--muted);transition:background-color .15s,background-position .15s}

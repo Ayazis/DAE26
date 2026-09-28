@@ -165,4 +165,19 @@ test.describe("importing shared favorites", () => {
     await expect(other.locator("#favs li")).toHaveCount(3);
     expect(Object.keys(await saved(other)).sort()).toEqual(["3", "Friesland foyer", "Tuinzaal"]);
   });
+
+  test("fullscreen menu button expands into the current favorites", async ({ page }) => {
+    await open(page, { rooms: { 3: { fav: true } } });
+    await expect(page.locator("#favmenu")).toBeHidden();
+    await page.click("#full");
+    await expect(page.locator("#favmenu")).toBeVisible();
+    await expect(page.locator("#favpanel")).toBeHidden();
+    await page.click("#favmenu");
+    await expect(page.locator("#favmenu")).toHaveAttribute("aria-expanded", "true");
+    await expect(page.locator("#favs2 li")).toHaveCount(1);
+    await expect(page.locator("#favs2 li")).toContainText("Room 3");
+    await page.click("#favs2 [data-go='3']");
+    await expect(page.locator("#favpanel")).toBeHidden();
+    await expect(page.locator("#tip")).toBeVisible();
+  });
 });

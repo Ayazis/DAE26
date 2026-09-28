@@ -105,13 +105,18 @@ function relabelRooms(){
 
 // Facility icons
 const ICON = {
-  wc:  '<path d="M-4.5-4.5a1.3 1.3 0 1 0 0 .01zM4.5-4.5a1.3 1.3 0 1 0 0 .01zM-6.3-2h3.6l.5 4h-1.1v4h-2.4v-4h-1.1zM3-2h3l1.8 4H6.3v4H2.7v-4H1.2z"/>',
+  wc:  '<circle cx="-3.9" cy="-5.1" r="1.45"/><circle cx="3.9" cy="-5.1" r="1.45"/>'+
+       '<path d="M-6-2.4a.9.9 0 0 1 .9-.9h2.4a.9.9 0 0 1 .9.9v4h-.9v4.9h-1.05V1.8h-.3v4.7H-5.1V1.6H-6z"/>'+
+       '<path d="M2.7-3.3h2.4l1.7 5.2H5v4.6H4.1V1.9h-.4v4.6h-.9V1.9H1z"/>'+
+       '<path d="M-.35-6.5h.7v13h-.7z"/>',
+  lift:'<circle cx="-3" cy="-4.8" r="1.45"/><path d="M-5.2-2.4a.9.9 0 0 1 .9-.9h2.6a.9.9 0 0 1 .9.9v4h-.9v4.9h-2.6V1.6h-.9z"/>'+
+       '<path d="M3.6-6.5l3 4h-6zM3.6 6.5l3-4h-6z"/>',
   info:'<circle cx="0" cy="-4.6" r="1.4"/><path d="M-2.2-1.8h3.4v6.3h1.3v1.6h-4.8v-1.6h1.3V-.2h-1.2z"/>',
   food:'<path d="M-5-6v5a2 2 0 0 0 1.3 1.9V7h1.4V.9A2 2 0 0 0-1-1v-5h-.9v4.4h-.8V-6h-.8v4.4h-.8V-6zM3.6-6c-1.8 1-2.4 3.2-2.4 5.3v2h1.4V7H4V-6z"/>',
   coat:'<path d="M0-5.5a1.8 1.8 0 0 1 1 3.3L.6-1.5 6.5 3.4c.5.4.2 1.3-.5 1.3h-12c-.7 0-1-.9-.5-1.3L-.6-1.5v-.9a.6.6 0 0 1 .6-.6.8.8 0 1 0-.8-.8H-2A2 2 0 0 1 0-5.5zm0 5.4L-4.6 3.5h9.2z"/>',
   aid: '<path d="M-2-6.5h4v4.5h4.5v4H2v4.5h-4V2h-4.5v-4H-2z"/>'
 };
-const ICON_NAME_KEY = {wc:"icon_wc", info:"icon_info", food:"icon_food", coat:"icon_coat", aid:"icon_aid"};
+const ICON_NAME_KEY = {wc:"icon_wc", lift:"icon_lift", info:"icon_info", food:"icon_food", coat:"icon_coat", aid:"icon_aid"};
 const iconTitles = [];
 PLAN.icons.forEach(([k,x,y])=>{
   const g=el("g",{class:"icon i-"+k,transform:`translate(${x} ${y})`},L.icons);
@@ -232,7 +237,12 @@ new ResizeObserver(()=>applyVB()).observe(box);
 const fullBtn=document.getElementById("full");
 const barEl=document.getElementById("bar");
 const barHome=document.getElementById("barhome");
+/* Fullscreen-only menu button that expands into the current favorites. */
+const favMenuBtn=document.getElementById("favmenu"), favPanel=document.getElementById("favpanel"), favPanelList=document.getElementById("favs2");
+function setFavPanel(on){ favPanel.hidden=!on; favMenuBtn.setAttribute("aria-expanded",on); }
+favMenuBtn.addEventListener("click",()=>setFavPanel(favPanel.hidden));
 function setFull(on){
+  if(!on) setFavPanel(false);
   box.classList.toggle("full",on); fullBtn.setAttribute("aria-pressed",on);
   document.body.style.overflow=on?"hidden":"";
   if(on) box.insertBefore(barEl, box.firstChild);
@@ -244,7 +254,7 @@ function setFull(on){
 fullBtn.addEventListener("click",()=>setFull(!box.classList.contains("full")));
 new ResizeObserver(()=>box.style.setProperty("--barh",barEl.offsetHeight+"px")).observe(barEl);
 document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement && box.classList.contains("full")) setFull(false); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape" && box.classList.contains("full")) setFull(false); });
+document.addEventListener("keydown",e=>{ if(e.key!=="Escape" || !box.classList.contains("full")) return; if(!favPanel.hidden) setFavPanel(false); else setFull(false); });
 /* High res = the redrawn map (default). Off = the original plan JPG, rooms stay tappable on top of it. */
 const hiBtn=document.getElementById("hires");
 function setHi(on){ svg.classList.toggle("show-orig",!on); svg.classList.toggle("no-vec",!on); hiBtn.setAttribute("aria-checked",on); store.set("hd",on); }
@@ -408,13 +418,14 @@ function renderFavs(){
   document.getElementById("progress").innerHTML = rooms.length||seen
     ? `<span class="pbar" style="--p:${rooms.length?favSeen/rooms.length*100:seen/all.length*100}%"></span>`+
       esc(rooms.length ? t("progress_fav",{favSeen,favTotal:rooms.length,seen,all:all.length}) : t("progress_all",{seen,all:all.length})) : "";
-  if(!rooms.length){ list.innerHTML=`<li class="empty">${esc(t("favs_empty"))}</li>`; return; }
-  list.innerHTML = rooms.map(r=>{ const {z,exs}=ROOMS[r], st=roomState(r), brands=brandsOf(exs);
+  const html = !rooms.length ? `<li class="empty">${esc(t("favs_empty"))}</li>` : rooms.map(r=>{ const {z,exs}=ROOMS[r], st=roomState(r), brands=brandsOf(exs);
     const extra = (st.visited?" ✓":"")+(st.rating?" "+"★".repeat(st.rating):"");
     return `<li style="--zc:${z.color}" class="${st.visited?"visited":""}"><button type="button" data-go="${esc(r)}"><span class="fr">${esc(rname(r))}${extra?`<span class="fx">${extra}</span>`:""}</span>
       ${st.note?`<span class="fn">${esc(st.note)}</span>`:""}
       <span class="fb">${esc(brands.slice(0,6).join(", "))}${brands.length>6?` +${brands.length-6}`:""}</span></button></li>`; }).join("");
+  list.innerHTML = favPanelList.innerHTML = html;
   list.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ select(b.dataset.go,true); box.scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"}); }));
+  favPanelList.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ setFavPanel(false); select(b.dataset.go,true); }));
 }
 
 /* ---------- theme ---------- */
