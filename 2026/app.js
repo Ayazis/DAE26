@@ -282,7 +282,14 @@ const barEl=document.getElementById("bar");
 const barHome=document.getElementById("barhome");
 /* Fullscreen-only menu button that expands into the current favorites. */
 const favMenuBtn=document.getElementById("favmenu"), favPanel=document.getElementById("favpanel"), favPanelList=document.getElementById("favs2");
-function setFavPanel(on){ favPanel.hidden=!on; favMenuBtn.setAttribute("aria-expanded",on); }
+const FAV_PANEL_ROWS=4;
+function setFavPanel(on){
+  favPanel.hidden=!on; favMenuBtn.setAttribute("aria-expanded",on);
+  if(!on) return;
+  // Rows differ in height (a note adds a line), so cap the panel at the bottom of the Nth row; the rest scrolls.
+  const li=favPanelList.children[FAV_PANEL_ROWS-1];
+  favPanel.style.maxHeight = li && li.nextElementSibling ? `min(${li.offsetTop+li.offsetHeight-favPanelList.offsetTop}px, calc(100% - var(--barh,0px) - 64px))` : "";
+}
 favMenuBtn.addEventListener("click",()=>setFavPanel(favPanel.hidden));
 function setFull(on){
   if(!on) setFavPanel(false);

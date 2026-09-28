@@ -56,8 +56,10 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .mapbox:not(.full) .favpanel{display:none}
 .favpanel{position:absolute;top:calc(var(--barh,0px) + 52px);right:8px;z-index:4;width:min(340px,calc(100% - 16px));max-height:calc(100% - var(--barh,0px) - 64px);overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 .favpanel[hidden]{display:none}
-.favpanel .favs{grid-template-columns:1fr}
-.mapctl .row{display:flex;gap:6px}
+.favpanel{overscroll-behavior:contain}
+.favpanel .favs{grid-template-columns:minmax(0,1fr);gap:4px}
+.favpanel .favs button{padding:5px 8px;gap:0}
+.favpanel .favs :is(.fr,.fn,.fb){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mapctl .row{display:flex;gap:6px}
 .sw,.zones button.sw{font:inherit;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .sw::before{content:"";flex:none;width:30px;height:18px;border-radius:999px;background:radial-gradient(circle,#fff 6.5px,transparent 7.5px) left 2px center/18px 18px no-repeat var(--muted);transition:background-color .15s,background-position .15s}
 .sw[aria-checked="true"]::before{background-position:right 2px center;background-color:var(--green)}
