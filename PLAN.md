@@ -7,8 +7,9 @@ Some of this already exists in `2026/` (search, zone filter, zoom/pan, light/dar
 ## Phase 0: Foundation
 - [x] Review the existing code and data. Already working: room hotspots (`BOX`), a room info panel below the map, search that highlights matching rooms, zone filter, 1×/2×/3× zoom with drag-to-pan, light/dark themes, and "also in room X" links for exhibitors in several rooms.
 - [x] Enable GitHub Pages from `main` (the app is at `/DAE26/2026/`). A root `index.html` redirects to `2026/`.
+- [ ] PR previews: `.github/workflows/pages.yml` publishes `main` to the `gh-pages` branch and each open PR to `pr-preview/pr-<number>/` (link posted on the PR, removed on close). Previews keep their own saved data (`daem-2026-v1@pr-<number>`), Drive backup file and offline cache. To finish: allow Actions to write (Settings → Actions → General → Workflow permissions), then set Pages to deploy from `gh-pages` / root.
 - [x] Data model: `URL_EX` in `data.js` maps all 94 exhibitors to their page on dutchaudioevent.nl. The room panel shows a "View page ↗" link for each one (new tab). Categories are postponed to Phase 3.
-- [x] All user data is stored under one versioned `localStorage` key, `daem-2026-v1`, through a small `store` helper in `app.js`. The old `dae-zoom` key is migrated automatically.
+- [x] All user data is stored under one versioned `localStorage` key, `daem-2026-v1`, through a small `store` helper in `app.js` (the key itself is defined in `i18n.js`, which loads first). The old `dae-zoom` key is migrated automatically.
 
 ## Phase 1: Core map (MVP) — SVG floor plan
 - [x] Redraw `plan.jpg` as an inline SVG (`plan.js` geometry + `BOX` rooms): building, patios, zone-coloured corridors, labelled rooms, facility icons (toilets, info, catering, wardrobe, first aid), entrances and zone badges.

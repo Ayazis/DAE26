@@ -163,10 +163,14 @@ const I18N = {
   }
 };
 
+// PR previews (…/pr-preview/pr-12/2026/) share the live site's origin, so they keep their own saved data.
+const PREVIEW = (location.pathname.match(/\/pr-preview\/([^/]+)\//) || [])[1] || "";
+// All user data lives under one versioned localStorage key.
+const STORE_KEY = "daem-2026-v1" + (PREVIEW ? "@" + PREVIEW : "");
 const LANG_KEY = "lang";
 let LANG = (()=>{
   try{
-    const d = JSON.parse(localStorage.getItem("daem-2026-v1")) || {};
+    const d = JSON.parse(localStorage.getItem(STORE_KEY)) || {};
     if(d.lang==="en"||d.lang==="nl") return d.lang;
   }catch(e){}
   return navigator.language && navigator.language.toLowerCase().startsWith("nl") ? "nl" : "en";
@@ -181,9 +185,9 @@ function t(key, vars){
 function setLang(lang){
   LANG = lang==="nl" ? "nl" : "en";
   try{
-    const d = JSON.parse(localStorage.getItem("daem-2026-v1")) || {};
+    const d = JSON.parse(localStorage.getItem(STORE_KEY)) || {};
     d.lang = LANG;
-    localStorage.setItem("daem-2026-v1", JSON.stringify(d));
+    localStorage.setItem(STORE_KEY, JSON.stringify(d));
   }catch(e){}
   document.documentElement.lang = LANG;
   applyI18n();

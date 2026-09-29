@@ -2,7 +2,7 @@
 // The backup is one JSON file in the app's hidden Drive folder (scope drive.appdata); the app can't see any other Drive file.
 // Google's sign-in script is fetched on the first click, so users who never use this send nothing to Google.
 (()=>{
-  const SCOPE="https://www.googleapis.com/auth/drive.appdata", FILE="dae2026-backup.json";
+  const SCOPE="https://www.googleapis.com/auth/drive.appdata", FILE=PREVIEW ? `dae2026-backup-${PREVIEW}.json` : "dae2026-backup.json";
   const API="https://www.googleapis.com/drive/v3/files", UPLOAD="https://www.googleapis.com/upload/drive/v3/files";
   let token=null, expires=0, tokenClient=null, gisLoading=null;
 

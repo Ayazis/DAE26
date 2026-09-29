@@ -1,0 +1,46 @@
+# Publishes the site to the gh-pages branch, which GitHub Pages serves (Settings → Pages → Deploy from a branch → gh-pages, / (root)).
+# main goes to the root; every open pull request gets a preview at pr-preview/pr-<number>/ that is removed when the PR closes.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write       # push to gh-pages
+  pull-requests: write  # preview link comment
+
+jobs:
+  deploy:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency: pages-main
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage the site (tracked files only)
+        run: mkdir _site && git archive HEAD | tar -x -C _site && rm -rf _site/.github _site/tests
+      - uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: _site
+          branch: gh-pages
+          clean-exclude: pr-preview/  # keep the open previews
+          force: false                # rebase onto gh-pages instead of force-pushing over previews
+
+  preview:
+    # Pull requests from forks get a read-only token and can't push previews.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency: preview-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage the site (tracked files only)
+        if: github.event.action != 'closed'
+        run: mkdir _site && git archive HEAD | tar -x -C _site && rm -rf _site/.github _site/tests
+      - uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: _site
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
