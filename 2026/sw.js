@@ -1,6 +1,6 @@
 // Offline support: precache the app shell, then code (html/css/js) is network-first so updates arrive on the next load and never mix versions; images and fonts are cache-first.
-const CACHE = "dae26-v15";
-const SHELL = ["./", "index.html", "styles.css", "app.js", "data.js", "plan.js", "plan.jpg",
+const CACHE = "dae26-v16";
+const SHELL = ["./", "index.html", "styles.css", "app.js", "analytics.js", "data.js", "plan.js", "plan.jpg",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

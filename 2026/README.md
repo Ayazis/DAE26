@@ -12,6 +12,7 @@ Serve the folder over HTTP to test locally (the service worker needs it), for ex
 - `data.js` – `EX` (exhibitor → brands), `ZONES` (zone → rooms → exhibitors), `BOX` (room → [left, top, width, height] in % of the image), `URL_EX` (exhibitor → page on dutchaudioevent.nl)
 - `plan.jpg` – original floor plan (2067×1680), shown with the "Original" toggle
 - `sw.js`, `manifest.webmanifest`, `icon-*.png` – offline support and install
+- `analytics.js` – optional visitor statistics (see below)
 
 User data (favorites, notes, visited, ratings, settings) is stored in `localStorage` under `daem-2026-v1`.
 
@@ -26,3 +27,13 @@ Off by default; the app is fully usable without it and local JSON backup/restore
 3. In `app.js` set `FEATURES.cloudBackup = true` and `GDRIVE_CLIENT_ID = "<your client id>"`.
 
 Adds three buttons under *Share & backup*: back up, restore, disconnect. The backup is one file in the app's hidden Drive folder. Google's script is only fetched when a button is first clicked. Sync is manual: browser-only sign-in tokens last about an hour and can't refresh silently.
+
+## Visitor statistics (GoatCounter)
+
+Off until configured. Counts page views of the map, privacy policy and terms with [GoatCounter](https://www.goatcounter.com): free for non-commercial use, no cookies and no stored IP addresses, so no cookie banner is needed. The privacy policy already describes it.
+
+1. Sign up at goatcounter.com and pick a site code, for example `dae26map`.
+2. In `analytics.js` set `GOATCOUNTER = "https://dae26map.goatcounter.com/count"`.
+3. Push. Visits show up on your dashboard at `https://dae26map.goatcounter.com`.
+
+Local runs (`localhost`, `127.0.0.1`, `file:`) are never counted. Visits made while offline are not counted either.
