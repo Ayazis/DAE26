@@ -70,8 +70,11 @@ PLAN.slants.forEach(([z,pts])=>el("polygon",{points:pts,class:"corr z-"+z},L.cor
 // Rooms
 const spots = {};
 const brandsOf = exs => exs.flatMap(e=>EX[e]&&EX[e].length?EX[e]:[e]);
-// Lines for a room block: a vendor carrying more than one brand gets a bold "Vendor:" line above its brands
-const roomLines = exs => exs.flatMap(e=>{ const b=brandsOf([e]); return b.length>1 ? [{t:e+":",v:true},...b.map(t=>({t}))] : b.map(t=>({t})); });
+// Lines for a room block: every vendor is bold (v). One whose only brand is itself is a single line; otherwise
+// a "Vendor:" header line goes above its brands. A blank line separates vendors. nb = not a brand line.
+const same = (a,b) => a.toLowerCase()===b.toLowerCase();
+const roomLines = exs => exs.flatMap((e,i)=>{ const b=brandsOf([e]), gap=i?[{t:"",nb:true}]:[];
+  return [...gap, ...(b.length===1 && same(b[0],e) ? [{t:e,v:true}] : [{t:e+":",v:true,nb:true},...b.map(t=>({t}))])]; });
 const trim = (s,maxChars) => s.length>maxChars ? s.slice(0,Math.max(3,Math.floor(maxChars)-1))+"…" : s;
 const big = r => !isNum(r);
 Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
@@ -111,10 +114,10 @@ function layoutRooms(k){
     // Extra lines only once they're readable; below that, the one-line headline as before.
     let n = bfs*k>=MIN_READ_PX ? Math.floor((h - 2*Math.max(2,bfs*.4) - fs*1.15)/bfs/1.2) : 0;
     if(n<=1) n = h>=fs*1.75 ? 1 : 0;
-    // The one-line headline stays a brand; with more lines, a vendor line never ends a cut-off list without its brands
-    const lines = n>=brands.length ? brands.slice() : n===1 ? brands.filter(l=>!l.v).slice(0,1) : brands.slice(0,n);
-    if(lines.length<brands.length && lines.length>1 && lines[lines.length-1].v) lines.pop();
-    const hidden = brands.filter(l=>!l.v).length - lines.filter(l=>!l.v).length; // "+N" counts brands, not vendor lines
+    // The one-line headline stays a brand; with more lines, a cut-off list never ends in a blank line or a vendor header
+    const lines = n>=brands.length ? brands.slice() : n===1 ? brands.filter(l=>!l.nb).slice(0,1) : brands.slice(0,n);
+    while(lines.length<brands.length && lines.length>1 && lines[lines.length-1].nb) lines.pop();
+    const hidden = brands.filter(l=>!l.nb).length - lines.filter(l=>!l.nb).length; // "+N" counts brands only
     const more = hidden ? " +"+hidden : ""; // suffix of the last line, never trimmed away
     if(lines.length===brands.length){
       const longest=Math.max(...lines.map(l=>l.t.length));
