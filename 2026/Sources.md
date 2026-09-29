@@ -32,6 +32,7 @@ Last scrape: see `sourcedata/scraped.json` (`scraped_at`, plus counts per source
 ```
 sourcedata/
   scrape.py                     fetch + parse script (Python 3, standard library only)
+  build_hifi.py                 hifi.nl/exhibitors.json -> ../hifi.js, matched to data.js exhibitors and rooms
   scraped.json                  time of the last scrape and item counts
   dutchaudioevent.nl/
     exhibitors.json             sources 1 + 2
@@ -91,9 +92,9 @@ sourcedata/
 | `URL_EX` (exhibitor → page) | `exhibitors.json` → `url` |
 | `BOX` (room hotspots) | Traced by hand from `plan.jpg` (source 5) |
 | (not used yet) product categories | `brands.json` → `categories`, for the Phase 3 category filter |
-| (not used yet) demo highlights | `hifi.nl/exhibitors.json` → `text` |
+| `HIFI` in `hifi.js` (room preview, searchable) | `hifi.nl/exhibitors.json`, via `sourcedata/build_hifi.py` |
 
-`data.js` is still edited by hand; the script only refreshes the snapshots. Diff the JSON after a refresh to see what changed on the site.
+`data.js` is still edited by hand; the script only refreshes the snapshots. `hifi.js` is generated: run `python 2026/sourcedata/build_hifi.py` after a HiFi.nl refresh or after renaming an exhibitor in `data.js`. It stops when a HiFi.nl heading has no matching exhibitor; add it to `ALIAS` in the script. Diff the JSON after a refresh to see what changed on the site.
 
 ### Cross-check of the 28 Sep 2026 scrape against `data.js`
 
