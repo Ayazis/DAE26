@@ -2,8 +2,6 @@
 // cloudBackup: optional Google Drive backup (needs GDRIVE_CLIENT_ID). Off = nothing Google-related is loaded or shown.
 const FEATURES = { zoneToggles: false, cloudBackup: true };
 const GDRIVE_CLIENT_ID = "643036601253-406hpgt3n0jsc755b723tum6uceuaieq.apps.googleusercontent.com";
-// All user data lives under one versioned localStorage key.
-const STORE_KEY = "daem-2026-v1";
 const store = (()=>{
   let d={};
   try{ d = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){}
