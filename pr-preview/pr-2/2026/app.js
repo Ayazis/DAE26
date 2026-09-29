@@ -28,6 +28,7 @@ const WHERE = {};
 ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>exs.forEach(e=>(WHERE[e] ||= []).push(r))));
 
 // HiFi.nl previews per room (hifi.js). A paragraph shared by several exhibitors is shown once, under the first of them.
+// English mode shows our translation (x.en) when there is one, otherwise HiFi.nl's Dutch text; search covers both.
 const PV = {};
 HIFI.forEach((x,i)=>x.rooms.forEach(r=>(PV[r] ||= []).push({...x,i})));
 
@@ -37,7 +38,8 @@ const hl = (t,q) => { if(!q) return esc(t); const i=t.toLowerCase().indexOf(q); 
 // ("EL50", "open baffle"); otherwise "de" or "an" would hit every room. A number stays a room-number search.
 let wordQ=null, wordRx=null;
 const wordRe = q => { if(q!==wordQ){ wordQ=q; wordRx = q.length<3 || /^\d+$/.test(q) ? null : new RegExp("(?<![\\p{L}\\p{N}])"+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"iu"); } return wordRx; };
-const pvHit = (text,q) => { const rx=wordRe(q); return !!rx && rx.test(text); };
+const pvHit = (text,q) => { const rx=wordRe(q); return !!rx && !!text && rx.test(text); };
+const pvMatch = (x,q) => pvHit(x.text,q) || pvHit(x.en,q);
 const hlWords = (text,q) => { const rx=wordRe(q); if(!rx) return esc(text); let out="", at=0;
   for(const m of text.matchAll(new RegExp(rx.source,"giu"))){ out+=esc(text.slice(at,m.index))+"<mark>"+esc(m[0])+"</mark>"; at=m.index+m[0].length; }
   return out+esc(text.slice(at)); };
@@ -335,10 +337,11 @@ let sel=null;
 let pvOpen={}; // preview index -> opened/closed by the user, for the open room; otherwise a preview opens when the search matches it
 function previews(r, e, q){
   return (PV[r]||[]).filter(x=>ROOMS[r].exs.find(k=>x.ex.includes(k))===e).map(x=>{
-    const open = x.i in pvOpen ? pvOpen[x.i] : pvHit(x.text,q);
+    const open = x.i in pvOpen ? pvOpen[x.i] : pvMatch(x,q);
+    const en = LANG==="en" && x.en;
     const lead = x.ex.length>1 ? `<b>${esc(x.h)}.</b> ` : "";
-    return `<details class="pv" data-pv="${x.i}"${open?" open":""}><summary>${esc(t("preview"))}</summary>
-      <p lang="nl">${lead}${hlWords(x.text,q)}</p><a class="ext" href="${esc(HIFI_URL[x.p])}" target="_blank" rel="noopener">${esc(t("preview_read"))}</a></details>`;
+    return `<details class="pv" data-pv="${x.i}"${open?" open":""}><summary>${esc(t(en||LANG!=="en"?"preview":"preview_dutch"))}</summary>
+      <p lang="${en?"en":"nl"}">${lead}${hlWords(en||x.text,q)}</p><a class="ext" href="${esc(HIFI_URL[x.p])}" target="_blank" rel="noopener">${esc(t("preview_read"))}</a></details>`;
   }).join("");
 }
 function select(r, move){
@@ -420,7 +423,7 @@ function matchRoom(r,q){
   if(!q) return false;
   if(r.toLowerCase()===q || (!isNum(q) && r.toLowerCase().includes(q))) return true;
   if((roomState(r).note||"").toLowerCase().includes(q)) return true;
-  if((PV[r]||[]).some(x=>pvHit(x.text,q))) return true;
+  if((PV[r]||[]).some(x=>pvMatch(x,q))) return true;
   return ROOMS[r].exs.some(e=>e.toLowerCase().includes(q) || (EX[e]||[]).some(b=>b.toLowerCase().includes(q)));
 }
 let zones=new Set(), favOnly=false, hideVisited=false; // empty set = all zones
