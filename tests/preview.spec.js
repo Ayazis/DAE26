@@ -10,9 +10,29 @@ test.describe("HiFi.nl previews", () => {
     await expect(pv).not.toHaveAttribute("open", "");
     await expect(pv.locator("p")).toBeHidden();
     await pv.locator("summary").click();
-    await expect(pv.locator("p")).toContainText("ZenSati kabels");
+    await expect(pv.locator("p")).toContainText("ZenSati cables");
     await expect(pv.locator("a")).toHaveAttribute("href", /groter-dan-ooit$/);
     expect(page.errors).toEqual([]);
+  });
+
+  test("English shows the translation, Dutch the original", async ({ page }) => {
+    await open(page);
+    await openRoom(page, "36");
+    await page.click("#tip .pv summary");
+    await expect(page.locator("#tip .pv summary")).toHaveText("From HiFi.nl (translated):");
+    await expect(page.locator("#tip .pv p")).toHaveAttribute("lang", "en");
+    await page.click("#lang");
+    await expect(page.locator("#tip .pv summary")).toHaveText("Van HiFi.nl:");
+    await expect(page.locator("#tip .pv p")).toHaveAttribute("lang", "nl");
+    await expect(page.locator("#tip .pv p")).toContainText("ZenSati kabels");
+    await expect(page.locator("#tip .pv")).toHaveAttribute("open", ""); // stays open across the switch
+  });
+
+  test("search finds the Dutch text in English mode too", async ({ page }) => {
+    await open(page);
+    await page.fill("#q", "luidsprekerfabrikanten"); // Aequo Audio, only in the Dutch text
+    await expect(page.locator(".room.hit")).toHaveCount(1);
+    await expect(page.locator(".room[data-r='8']")).toHaveClass(/\bhit\b/);
   });
 
   test("the preview text is searchable and opens with the match marked", async ({ page }) => {
@@ -49,7 +69,7 @@ test.describe("HiFi.nl previews", () => {
     const spl = page.locator("#tip .ex", { hasText: "SPL electronics" }).locator(".pv");
     await expect(spl).toHaveCount(1);
     await spl.locator("summary").click();
-    await expect(spl.locator("p")).toContainText("statische presentatie");
+    await expect(spl.locator("p")).toContainText("static presentation");
   });
 
   test("an opened preview stays open while the tooltip redraws", async ({ page }) => {
