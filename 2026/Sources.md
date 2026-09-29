@@ -37,9 +37,9 @@ sourcedata/
     exhibitors.json             sources 1 + 2
     brands.json                 sources 3 + 4
     dae2026floor.jpg            source 5
-  hifi.nl/                      git-ignored (article text is copyrighted); run `scrape.py --only hifi` to create it
-    article-p1.html             source 6, raw HTML
-    article-p2.html             source 7, raw HTML
+  hifi.nl/
+    article-p1.html             source 6, raw HTML (git-ignored: holds per-visit tokens)
+    article-p2.html             source 7, raw HTML (git-ignored: holds per-visit tokens)
     article.md                  both pages as text, one "### Exhibitor | Room | Zone" section each
     exhibitors.json             [{exhibitor, where, page, text}] parsed from the article
   .cache/                       raw HTML of every fetched page (git-ignored)
@@ -120,4 +120,4 @@ If the sites change their markup, the parsers (regular expressions in `scrape.py
 
 We have permission from the Dutch Audio Event organisation to use the dutchaudioevent.nl content, so those snapshots are committed.
 
-The HiFi.nl article text belongs to HiFi.nl; we have no such permission. Its snapshot (`sourcedata/hifi.nl/`) is git-ignored so the article isn't republished via GitHub Pages; it only exists locally after running the script.
+We also have permission from HiFi.nl to use their article text, so its parsed snapshot (`hifi.nl/article.md` and `hifi.nl/exhibitors.json`) is committed too. The raw HTML pages stay git-ignored because they contain per-visit tokens.

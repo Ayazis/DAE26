@@ -434,5 +434,5 @@ playwright-report/
 
 # Raw HTML cache of 2026/sourcedata/scrape.py (re-parse with --offline)
 2026/sourcedata/.cache/
-# HiFi.nl article text (copyrighted); regenerate with scrape.py --only hifi
-2026/sourcedata/hifi.nl/
+# Raw HiFi.nl article HTML (holds per-visit CSRF tokens); the parsed article.md and exhibitors.json are committed
+2026/sourcedata/hifi.nl/*.html
