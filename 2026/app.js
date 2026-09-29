@@ -70,6 +70,8 @@ PLAN.slants.forEach(([z,pts])=>el("polygon",{points:pts,class:"corr z-"+z},L.cor
 // Rooms
 const spots = {};
 const brandsOf = exs => exs.flatMap(e=>EX[e]&&EX[e].length?EX[e]:[e]);
+// Lines for a room block: a vendor carrying more than one brand gets a bold "Vendor:" line above its brands
+const roomLines = exs => exs.flatMap(e=>{ const b=brandsOf([e]); return b.length>1 ? [{t:e+":",v:true},...b.map(t=>({t}))] : b.map(t=>({t})); });
 const trim = (s,maxChars) => s.length>maxChars ? s.slice(0,Math.max(3,Math.floor(maxChars)-1))+"…" : s;
 const big = r => !isNum(r);
 Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
@@ -90,7 +92,7 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
     const star=el("text",{x:x+w-2,y:y+2,class:"star","font-size":ifs.toFixed(1)},g); star.textContent="★";
     const brand = inUse(r) && !vertical ? el("text",{x:cx,class:"rbrand"},g) : null;
     g.setAttribute("tabindex","0"); g.setAttribute("role","button");
-    spots[r]={g,x,y,w,h,vertical,fsFit,ifs,label:t,check,star,brand,brands:brandsOf(info.exs)};
+    spots[r]={g,x,y,w,h,vertical,fsFit,ifs,label:t,check,star,brand,brands:roomLines(info.exs)};
   }
 });
 /* Level of detail: zoomed out a room shows its number and one brand (+N). Zoomed in, text stops growing
@@ -109,10 +111,13 @@ function layoutRooms(k){
     // Extra lines only once they're readable; below that, the one-line headline as before.
     let n = bfs*k>=MIN_READ_PX ? Math.floor((h - 2*Math.max(2,bfs*.4) - fs*1.15)/bfs/1.2) : 0;
     if(n<=1) n = h>=fs*1.75 ? 1 : 0;
-    const lines = n>=brands.length ? brands.slice() : brands.slice(0,n);
-    const more = n && n<brands.length ? " +"+(brands.length-n) : ""; // suffix of the last line, never trimmed away
+    // The one-line headline stays a brand; with more lines, a vendor line never ends a cut-off list without its brands
+    const lines = n>=brands.length ? brands.slice() : n===1 ? brands.filter(l=>!l.v).slice(0,1) : brands.slice(0,n);
+    if(lines.length<brands.length && lines.length>1 && lines[lines.length-1].v) lines.pop();
+    const hidden = brands.filter(l=>!l.v).length - lines.filter(l=>!l.v).length; // "+N" counts brands, not vendor lines
+    const more = hidden ? " +"+hidden : ""; // suffix of the last line, never trimmed away
     if(lines.length===brands.length){
-      const longest=Math.max(...lines.map(l=>l.length));
+      const longest=Math.max(...lines.map(l=>l.t.length));
       const grow=Math.min(1.5, fsFit/fs, bfsMax/bfs, h*.85/(fs*1.15+lines.length*bfs*1.2), w*.85/(longest*bfs*.62));
       if(grow>1){ fs*=grow; bfs*=grow; }
     }
@@ -123,8 +128,8 @@ function layoutRooms(k){
     brand.textContent="";
     const maxChars = w/(bfs*0.55);
     lines.forEach((line,i)=>{
-      const ts=el("tspan",{x:cx,y:(top+fs*1.15+lh*(i+.5)).toFixed(2)},brand);
-      ts.textContent = i===lines.length-1 && more ? trim(line,maxChars-more.length)+more : trim(line,maxChars);
+      const ts=el("tspan",{x:cx,y:(top+fs*1.15+lh*(i+.5)).toFixed(2),...(line.v&&{class:"vendor"})},brand);
+      ts.textContent = i===lines.length-1 && more ? trim(line.t,maxChars-more.length)+more : trim(line.t,maxChars);
     });
   });
   // Facility icons, entrances and zone badges stop growing past MARKER_K px per unit.

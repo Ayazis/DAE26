@@ -128,6 +128,7 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 /* favorites */
 .star{fill:var(--star);text-anchor:end;dominant-baseline:hanging;display:none;pointer-events:none;paint-order:stroke;stroke:var(--room);stroke-width:2px}
 .rbrand{fill:var(--muted);text-anchor:middle;dominant-baseline:central;font-weight:500;pointer-events:none}
+.rbrand .vendor{font-weight:700;fill:var(--ink)}
 .room.fav .star{display:inline}
 .tip .favb{font:inherit;font-size:22px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
 .tip .favb[aria-pressed="true"]{color:var(--star)}

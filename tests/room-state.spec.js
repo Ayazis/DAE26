@@ -101,3 +101,15 @@ test("rooms without exhibitors open as not in use and can't be favorited", async
   await expect(page.locator("#tip .favb, #tip .note, #tip .vis")).toHaveCount(0);
   await expect(page.locator(".room[data-r='50']")).toHaveClass(/\bunused\b/);
 });
+
+test("zoomed in, a vendor with several brands is shown in bold above them", async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => layoutRooms(8)); // enough px per unit for every line to fit
+  const lines = r => page.locator(`.room[data-r='${r}'] .rbrand tspan`);
+  await expect(lines("3")).toHaveText(["Dynaudio Benelux:", "Dynaudio", "Octave Audio"]);
+  await expect(lines("3").first()).toHaveClass("vendor");
+  await expect(lines("34")).toHaveText(["Sonos"]); // single brand: no vendor line
+  await expect(page.locator(".room[data-r='34'] .vendor")).toHaveCount(0);
+  await page.evaluate(() => layoutRooms(0.5)); // zoomed out, the headline is still one brand
+  await expect(lines("3")).toHaveText(["Dynaudio +1"]);
+});
