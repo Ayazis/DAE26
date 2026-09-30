@@ -112,15 +112,17 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
 });
 /* Level of detail: zoomed out a room shows its number and one brand (+N). Zoomed in, text stops growing
    on screen (it's capped at a pixel size) and the freed space fills with more brands. Once everything fits,
-   the text may grow again, up to its zoomed-out size in map units. k = px per svg unit. */
+   the text may grow again, up to its zoomed-out size in map units. k = px per svg unit.
+   Runs on every zoom frame, so text lines are only rebuilt when their content changes; otherwise just resized. */
 const LABEL_PX=15, BRAND_PX=11, ICON_PX=13, MIN_READ_PX=8, MARKER_K=1.6;
+const setA = (n,k,v) => { if(n.getAttribute(k)!==v) n.setAttribute(k,v); };
 function layoutRooms(k){
   Object.values(spots).forEach(s=>{
     const {x,y,w,h,fsFit,brand,brands}=s, cx=x+w/2, cy=y+h/2;
     let fs=Math.min(fsFit, LABEL_PX/k);
-    const ifs=Math.min(s.ifs, ICON_PX/k);
-    s.check.setAttribute("font-size",ifs.toFixed(2)); s.star.setAttribute("font-size",ifs.toFixed(2));
-    if(!brand){ s.label.setAttribute("font-size",fs.toFixed(2)); s.label.setAttribute("y",cy); return; }
+    const ifs=Math.min(s.ifs, ICON_PX/k).toFixed(2);
+    setA(s.check,"font-size",ifs); setA(s.star,"font-size",ifs);
+    if(!brand){ setA(s.label,"font-size",fs.toFixed(2)); setA(s.label,"y",String(cy)); return; }
     const bfsMax=Math.max(6,Math.min(fsFit*.55,w/9));
     let bfs=Math.min(bfsMax, BRAND_PX/k);
     // Extra lines only once they're readable; below that, the one-line headline as before.
@@ -137,19 +139,21 @@ function layoutRooms(k){
       if(grow>1){ fs*=grow; bfs*=grow; }
     }
     const lh=bfs*1.2, top = cy - (fs*1.15 + lines.length*lh)/2;
-    s.label.setAttribute("font-size",fs.toFixed(2));
-    s.label.setAttribute("y", lines.length ? top+fs*.575 : cy);
-    brand.setAttribute("font-size",bfs.toFixed(2));
-    brand.textContent="";
+    setA(s.label,"font-size",fs.toFixed(2));
+    setA(s.label,"y", String(lines.length ? +(top+fs*.575).toFixed(2) : cy));
+    setA(brand,"font-size",bfs.toFixed(2));
     const maxChars = w/(bfs*0.55);
-    lines.forEach((line,i)=>{
-      const ts=el("tspan",{x:cx,y:(top+fs*1.15+lh*(i+.5)).toFixed(2),...(line.v&&{class:"vendor"})},brand);
-      ts.textContent = i===lines.length-1 && more ? trim(line.t,maxChars-more.length)+more : trim(line.t,maxChars);
-    });
+    const texts = lines.map((line,i)=>i===lines.length-1 && more ? trim(line.t,maxChars-more.length)+more : trim(line.t,maxChars));
+    const key = lines.map(l=>l.v?"v":"-").join(""); // which lines exist; their text may change (trim) without a rebuild
+    if(s.key!==key){
+      s.key=key; brand.textContent="";
+      s.tspans = lines.map(line=>el("tspan",{x:cx,...(line.v&&{class:"vendor"})},brand));
+    }
+    s.tspans.forEach((ts,i)=>{ if(ts.textContent!==texts[i]) ts.textContent=texts[i]; setA(ts,"y",(top+fs*1.15+lh*(i+.5)).toFixed(2)); });
   });
   // Facility icons, entrances and zone badges stop growing past MARKER_K px per unit.
   const m=Math.min(1, MARKER_K/k);
-  markers.forEach(([g,x,y])=>g.setAttribute("transform",`translate(${x} ${y})`+(m<1?` scale(${m.toFixed(3)})`:"")));
+  markers.forEach(([g,x,y])=>setA(g,"transform",`translate(${x} ${y})`+(m<1?` scale(${m.toFixed(3)})`:"")));
 }
 const markers = []; // [g, x, y]
 function relabelRooms(){
@@ -199,19 +203,16 @@ PLAN.badges.forEach(([z,x,y])=>{
 const FIT = {x:40, y:150, w:1680, h:1390};
 let vb = {...FIT};
 const MINW=80, MAXW=2600;
-function applyVB(){
+// Pointer and wheel events can fire several times per frame; the view is drawn at most once per frame,
+// with the room text resized in the same frame so it never lags behind the map.
+let vbFrame=0, laidK=null;
+function applyVB(){ if(!vbFrame) vbFrame=requestAnimationFrame(drawVB); }
+function drawVB(){
+  cancelAnimationFrame(vbFrame); vbFrame=0;
   svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
-  relayout();
+  const k=pxPerUnit();
+  if(k>0 && !(Math.abs(k/laidK-1)<0.004)){ laidK=k; layoutRooms(k); } // a smaller change in text size can't be seen
   placeTip();
-}
-// Room text is rebuilt only when the zoom crosses a quarter-octave step, not on every pinch frame.
-let lodStep=null, lodFrame=0;
-function relayout(){
-  const k=pxPerUnit(); if(!(k>0)) return;
-  const step=Math.round(Math.log2(k)*4);
-  if(step===lodStep) return;
-  lodStep=step; cancelAnimationFrame(lodFrame);
-  lodFrame=requestAnimationFrame(()=>layoutRooms(2**(step/4)));
 }
 // px per svg unit, taking preserveAspectRatio=meet into account
 function pxPerUnit(){ return Math.min(box.clientWidth/vb.w, box.clientHeight/vb.h); }
@@ -223,16 +224,15 @@ function toSvg(clientX,clientY){
 function zoomAt(factor, cx, cy){
   const nw = Math.min(MAXW, Math.max(MINW, vb.w*factor)); const f = nw/vb.w;
   vb = { x: cx-(cx-vb.x)*f, y: cy-(cy-vb.y)*f, w: nw, h: vb.h*f };
-  applyVB();
 }
 let anim=null;
 function animateTo(target){
-  cancelAnimationFrame(anim);
+  cancelAnimationFrame(anim); stopWheel();
   if(reduceMotion()){ vb=target; applyVB(); return; }
   const from={...vb}, t0=performance.now(), D=280;
   const step=t=>{ const k=Math.min(1,(t-t0)/D), e=1-Math.pow(1-k,3);
     vb={x:from.x+(target.x-from.x)*e, y:from.y+(target.y-from.y)*e, w:from.w+(target.w-from.w)*e, h:from.h+(target.h-from.h)*e};
-    applyVB(); if(k<1) anim=requestAnimationFrame(step); };
+    drawVB(); if(k<1) anim=requestAnimationFrame(step); };
   anim=requestAnimationFrame(step);
 }
 function fitView(){ animateTo({...FIT}); }
@@ -250,7 +250,7 @@ const ptrs = new Map(); let gesture=null;
 svg.addEventListener("pointerdown", e=>{
   svg.setPointerCapture(e.pointerId);
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  cancelAnimationFrame(anim);
+  cancelAnimationFrame(anim); stopWheel();
   gesture = { start:{...vb}, pts:[...ptrs.values()].map(p=>({...p})), moved:false,
               room: ptrs.size===1 ? e.target.closest(".room[tabindex]") : null };
 });
@@ -284,17 +284,35 @@ const endPtr = e=>{
 };
 svg.addEventListener("pointerup", endPtr);
 svg.addEventListener("pointercancel", endPtr);
+/* Wheel zoom glides: each notch adds to a pending zoom (log scale) that is eased out over the next frames,
+   around the point under the cursor, instead of jumping ~16% at once. */
+let wheel=null; // {z: pending log zoom, cx, cy, t: last frame time, raf}
+function stopWheel(){ if(wheel){ cancelAnimationFrame(wheel.raf); wheel=null; } }
+function wheelStep(t){
+  const dt = wheel.t==null ? 16 : Math.min(64, Math.max(1, t-wheel.t)); wheel.t=t;
+  let z = wheel.z*(1-Math.exp(-dt/70)); // ~70 ms time constant
+  if(Math.abs(wheel.z-z)<1e-3) z=wheel.z; // land exactly on the target
+  const w0=vb.w;
+  zoomAt(Math.exp(z), wheel.cx, wheel.cy); drawVB();
+  wheel.z-=z;
+  if(!wheel.z || vb.w===w0) wheel=null; // done, or held at the zoom limit
+  else wheel.raf=requestAnimationFrame(wheelStep);
+}
 svg.addEventListener("wheel", e=>{
   e.preventDefault();
-  const c=toSvg(e.clientX,e.clientY);
-  zoomAt(Math.exp(e.deltaY*(e.ctrlKey?0.01:0.0015)), c.x, c.y);
+  cancelAnimationFrame(anim);
+  const dy = e.deltaY*(e.deltaMode===1?33:e.deltaMode===2?800:1); // lines/pages (Firefox) to pixels
+  const z = dy*(e.ctrlKey?0.01:0.0015), c=toSvg(e.clientX,e.clientY);
+  if(reduceMotion()){ zoomAt(Math.exp(z), c.x, c.y); applyVB(); return; }
+  if(!wheel){ wheel={z:0, t:null}; wheel.raf=requestAnimationFrame(wheelStep); }
+  wheel.z = Math.max(-3, Math.min(3, wheel.z+z)); wheel.cx=c.x; wheel.cy=c.y;
 },{passive:false});
 svg.addEventListener("keydown", e=>{
   const g=e.target.closest(".room[tabindex]");
   if(g && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); select(g.dataset.r,true); }
 });
 addEventListener("keydown", e=>{ if(e.key==="Escape") closeTip(); });
-new ResizeObserver(()=>applyVB()).observe(box);
+new ResizeObserver(()=>drawVB()).observe(box); // already inside a frame: draw now, not one frame late
 
 /* Fullscreen: real Fullscreen API where available, otherwise (iPhone) a fixed full-window overlay. */
 const fullBtn=document.getElementById("full");
@@ -625,7 +643,7 @@ applyI18n();
 setHi(store.get("hd")!==false);
 Object.keys(spots).forEach(paintRoom);
 renderFavs();
-applyVB();
+drawVB();
 refresh();
 importSharedFavs();
 addEventListener("hashchange", importSharedFavs); // a shared link opened while the app is already open
