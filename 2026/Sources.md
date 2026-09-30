@@ -32,6 +32,7 @@ Last scrape: see `sourcedata/scraped.json` (`scraped_at`, plus counts per source
 ```
 sourcedata/
   scrape.py                     fetch + parse script (Python 3, standard library only)
+  build_hifi.py                 hifi.nl/exhibitors.json -> ../hifi.js, matched to data.js exhibitors and rooms
   scraped.json                  time of the last scrape and item counts
   dutchaudioevent.nl/
     exhibitors.json             sources 1 + 2
@@ -42,6 +43,7 @@ sourcedata/
     article-p2.html             source 7, raw HTML (git-ignored: holds per-visit tokens)
     article.md                  both pages as text, one "### Exhibitor | Room | Zone" section each
     exhibitors.json             [{exhibitor, where, page, text}] parsed from the article
+    translations-en.json        {heading: {src, en}}: our English translation of each paragraph (src = hash of the Dutch text)
   .cache/                       raw HTML of every fetched page (git-ignored)
 ```
 
@@ -91,9 +93,9 @@ sourcedata/
 | `URL_EX` (exhibitor → page) | `exhibitors.json` → `url` |
 | `BOX` (room hotspots) | Traced by hand from `plan.jpg` (source 5) |
 | (not used yet) product categories | `brands.json` → `categories`, for the Phase 3 category filter |
-| (not used yet) demo highlights | `hifi.nl/exhibitors.json` → `text` |
+| `HIFI` in `hifi.js` (room preview, searchable) | `hifi.nl/exhibitors.json` + `hifi.nl/translations-en.json`, via `sourcedata/build_hifi.py` |
 
-`data.js` is still edited by hand; the script only refreshes the snapshots. Diff the JSON after a refresh to see what changed on the site.
+`data.js` is still edited by hand; the script only refreshes the snapshots. `hifi.js` is generated: run `python 2026/sourcedata/build_hifi.py` after a HiFi.nl refresh or after renaming an exhibitor in `data.js`. It stops when a HiFi.nl heading has no matching exhibitor; add it to `ALIAS` in the script. It also strips page footers the scraper left in a few paragraphs, and warns when a paragraph has no English translation or its Dutch text changed since it was translated; update `translations-en.json` then (until then English mode shows the Dutch text). Diff the JSON after a refresh to see what changed on the site.
 
 ### Cross-check of the 28 Sep 2026 scrape against `data.js`
 
@@ -120,4 +122,4 @@ If the sites change their markup, the parsers (regular expressions in `scrape.py
 
 We have permission from the Dutch Audio Event organisation to use the dutchaudioevent.nl content, so those snapshots are committed.
 
-We also have permission from HiFi.nl to use their article text, so its parsed snapshot (`hifi.nl/article.md` and `hifi.nl/exhibitors.json`) is committed too. The raw HTML pages stay git-ignored because they contain per-visit tokens.
+We also have permission from HiFi.nl to use their article text, so its parsed snapshot (`hifi.nl/article.md` and `hifi.nl/exhibitors.json`) is committed too. The English translations in `hifi.nl/translations-en.json` are ours, and the app labels them as translated. The raw HTML pages stay git-ignored because they contain per-visit tokens.

@@ -27,8 +27,22 @@ const inUse = r => ROOMS[r].exs.length>0;
 const WHERE = {};
 ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>exs.forEach(e=>(WHERE[e] ||= []).push(r))));
 
+// HiFi.nl previews per room (hifi.js). A paragraph shared by several exhibitors is shown once, under the first of them.
+// English mode shows our translation (x.en) when there is one, otherwise HiFi.nl's Dutch text; search covers both.
+const PV = {};
+HIFI.forEach((x,i)=>x.rooms.forEach(r=>(PV[r] ||= []).push({...x,i})));
+
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hl = (t,q) => { if(!q) return esc(t); const i=t.toLowerCase().indexOf(q); return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); };
+// Preview texts are long Dutch prose, so they only match at the start of a word and from 3 characters on
+// ("EL50", "open baffle"); otherwise "de" or "an" would hit every room. A number stays a room-number search.
+let wordQ=null, wordRx=null;
+const wordRe = q => { if(q!==wordQ){ wordQ=q; wordRx = q.length<3 || /^\d+$/.test(q) ? null : new RegExp("(?<![\\p{L}\\p{N}])"+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"iu"); } return wordRx; };
+const pvHit = (text,q) => { const rx=wordRe(q); return !!rx && !!text && rx.test(text); };
+const pvMatch = (x,q) => pvHit(x.text,q) || pvHit(x.en,q);
+const hlWords = (text,q) => { const rx=wordRe(q); if(!rx) return esc(text); let out="", at=0;
+  for(const m of text.matchAll(new RegExp(rx.source,"giu"))){ out+=esc(text.slice(at,m.index))+"<mark>"+esc(m[0])+"</mark>"; at=m.index+m[0].length; }
+  return out+esc(text.slice(at)); };
 const isNum = r => /^\d+$/.test(r);
 const rname = r => isNum(r) ? t("room_label",{n:r}) : r;
 const reduceMotion = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -320,8 +334,22 @@ hiBtn.addEventListener("click",()=>setHi(svg.classList.contains("show-orig")));
 /* ---------- tooltip ---------- */
 const tip = document.getElementById("tip");
 let sel=null;
+let pvOpen={}; // preview index -> expanded/collapsed by the user, for the open room; otherwise a preview expands when the search matches it
+// A preview shows its first line; "Read more" expands it. The source line always shows, and says when the text is our translation.
+function previews(r, e, q){
+  return (PV[r]||[]).filter(x=>ROOMS[r].exs.find(k=>x.ex.includes(k))===e).map(x=>{
+    const open = x.i in pvOpen ? pvOpen[x.i] : pvMatch(x,q);
+    const en = LANG==="en" && x.en;
+    const lead = x.ex.length>1 ? `<b>${esc(x.h)}.</b> ` : "";
+    const note = LANG!=="en" ? "" : " "+t(en?"pv_translated":"pv_dutch");
+    return `<div class="pv${open?" open":""}" data-pv="${x.i}"><p id="pv${x.i}" lang="${en?"en":"nl"}">${lead}${hlWords(en||x.text,q)}</p>
+      <div class="pvf"><button type="button" class="more" aria-expanded="${open}" aria-controls="pv${x.i}">${esc(t(open?"read_less":"read_more"))}</button>
+      <span class="src">${esc(t("pv_source"))} <a href="${esc(HIFI_URL[x.p])}" target="_blank" rel="noopener">HiFi.nl</a>${esc(note)}</span></div></div>`;
+  }).join("");
+}
 function select(r, move){
   if(!ROOMS[r]) return;
+  if(r!==sel) pvOpen={};
   sel=r;
   Object.entries(spots).forEach(([k,s])=>s.g.classList.toggle("sel", k===r));
   const {z,exs} = ROOMS[r]; const q=cur();
@@ -331,7 +359,7 @@ function select(r, move){
     const also = others.length ? `<div class="also">${esc(t("also_in"))}${others.map(o=>`<button type="button" data-go="${esc(o)}">${esc(rname(o))}</button>`).join(", ")}</div>` : "";
     const link = URL_EX[e] ? `<a class="ext" href="${esc(URL_EX[e])}" target="_blank" rel="noopener">${esc(t("view_page"))}</a>` : "";
     const b = list.length ? list.map(x=>hl(x,q)).join(", ") : `<span class="none">${esc(t("no_brands"))}</span>`;
-    return `<div class="ex"><div class="exn"><span>${hl(e,q)}</span>${link}</div><div class="brands">${b}</div>${also}</div>`;
+    return `<div class="ex"><div class="exn"><span>${hl(e,q)}</span>${link}</div><div class="brands">${b}</div>${also}${previews(r,e,q)}</div>`;
   }).join("");
   tip.style.setProperty("--zc", z.color);
   if(!inUse(r)){
@@ -358,6 +386,12 @@ function select(r, move){
     tip.querySelectorAll(".rate button").forEach(x=>x.setAttribute("aria-pressed", v>=+x.dataset.n)); }));
   tip.querySelector(".x").addEventListener("click",closeTip);
   tip.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go,true)));
+  tip.querySelectorAll(".pv .more").forEach(b=>b.addEventListener("click",()=>{
+    const d=b.closest(".pv"), on=!d.classList.contains("open");
+    pvOpen[d.dataset.pv]=on; d.classList.toggle("open",on);
+    b.setAttribute("aria-expanded",on); b.textContent=t(on?"read_less":"read_more");
+    placeTip();
+  }));
   tip.hidden=false;
   if(move) focusRoom(r);
   placeTip();
@@ -394,6 +428,7 @@ function matchRoom(r,q){
   if(!q) return false;
   if(r.toLowerCase()===q || (!isNum(q) && r.toLowerCase().includes(q))) return true;
   if((roomState(r).note||"").toLowerCase().includes(q)) return true;
+  if((PV[r]||[]).some(x=>pvMatch(x,q))) return true;
   return ROOMS[r].exs.some(e=>e.toLowerCase().includes(q) || (EX[e]||[]).some(b=>b.toLowerCase().includes(q)));
 }
 let zones=new Set(), favOnly=false, hideVisited=false; // empty set = all zones
