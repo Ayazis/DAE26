@@ -21,7 +21,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 CACHE = HERE / ".cache"
 DAE = "https://dutchaudioevent.nl"
-HIFI_ARTICLE = "https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit"
+HIFI_ARTICLE = "https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets"
 FLOORPLAN = DAE + "/assets/upload/images/dae2026floor.jpg"
 UA = "Mozilla/5.0 (DAE26 floor map data refresh)"
 DELAY = 0.3  # seconds between network requests, to be polite

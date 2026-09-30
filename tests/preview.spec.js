@@ -29,7 +29,7 @@ test.describe("HiFi.nl previews", () => {
     const src = page.locator("#tip .pv .src");
     await expect(src).toHaveText("Source: HiFi.nl (translated from Dutch)");
     await expect(src.locator("a")).toHaveText("HiFi.nl");
-    await expect(src.locator("a")).toHaveAttribute("href", /groter-dan-ooit$/);
+    await expect(src.locator("a")).toHaveAttribute("href", /get-your-tickets$/);
   });
 
   test("English shows the translation, Dutch the original", async ({ page }) => {
