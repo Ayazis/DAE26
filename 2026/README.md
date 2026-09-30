@@ -31,10 +31,6 @@ Adds three buttons under *Share & backup*: back up, restore, disconnect. The bac
 
 ## Visitor statistics (GoatCounter)
 
-Off until configured, and safe to leave that way: nothing is loaded and the privacy policy hides its statistics section. Counts page views of the map, privacy policy and terms with [GoatCounter](https://www.goatcounter.com): free for non-commercial use, no cookies and no stored IP addresses, so no cookie banner is needed. The privacy policy's statistics section appears automatically once it's on.
+Page views of the map, privacy policy and terms are counted with [GoatCounter](https://www.goatcounter.com): free for non-commercial use, no cookies and no stored IP addresses, so no cookie banner is needed. The stats are at [daemap26.goatcounter.com](https://daemap26.goatcounter.com).
 
-1. Sign up at goatcounter.com and pick a site code, for example `dae26map`.
-2. In `analytics.js` set `GOATCOUNTER = "https://dae26map.goatcounter.com/count"`.
-3. Push. Visits show up on your dashboard at `https://dae26map.goatcounter.com`.
-
-Setting the URL before the GoatCounter site exists does no harm: GoatCounter rejects the hits (HTTP 400) and the map works as normal. Local runs (`localhost`, `127.0.0.1`, `file:`) and PR previews (`pr-preview/`) are never counted. Visits made while offline are not counted either.
+The site code is set in `analytics.js` (`GOATCOUNTER`). Set it to `""` to turn counting off: nothing is loaded then, and the privacy policy hides its statistics section. Local runs (`localhost`, `127.0.0.1`, `file:`) and PR previews (`pr-preview/`) are never counted, and neither are visits made while offline.
