@@ -125,9 +125,17 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .brands .none{color:var(--muted);font-style:italic;font-weight:400}
 .also{font-size:12.5px;color:var(--muted);margin-top:2px}
 .also button{font:inherit;border:0;background:none;color:var(--blue);padding:0;cursor:pointer;text-decoration:underline}
+.pv{margin-top:5px;font-size:13px}
+.pv p{margin:0;line-height:1.45;font-style:italic}
+.pv:not(.open) p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;line-clamp:1;overflow:hidden}
+.pvf{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 10px;margin-top:2px;font-size:12px}
+.pvf .more{font:inherit;font-weight:600;border:0;background:none;color:var(--blue);padding:0;cursor:pointer}
+.pvf .src{color:var(--muted)}
+.pvf .src a{color:var(--blue)}
 /* favorites */
 .star{fill:var(--star);text-anchor:end;dominant-baseline:hanging;display:none;pointer-events:none;paint-order:stroke;stroke:var(--room);stroke-width:2px}
 .rbrand{fill:var(--muted);text-anchor:middle;dominant-baseline:central;font-weight:500;pointer-events:none}
+.rbrand .vendor{font-weight:700;fill:var(--ink)}
 .room.fav .star{display:inline}
 .tip .favb{font:inherit;font-size:22px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
 .tip .favb[aria-pressed="true"]{color:var(--star)}

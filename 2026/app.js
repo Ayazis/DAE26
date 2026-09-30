@@ -2,8 +2,6 @@
 // cloudBackup: optional Google Drive backup (needs GDRIVE_CLIENT_ID). Off = nothing Google-related is loaded or shown.
 const FEATURES = { zoneToggles: false, cloudBackup: true };
 const GDRIVE_CLIENT_ID = "643036601253-406hpgt3n0jsc755b723tum6uceuaieq.apps.googleusercontent.com";
-// All user data lives under one versioned localStorage key.
-const STORE_KEY = "daem-2026-v1";
 const store = (()=>{
   let d={};
   try{ d = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){}
@@ -29,8 +27,22 @@ const inUse = r => ROOMS[r].exs.length>0;
 const WHERE = {};
 ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>exs.forEach(e=>(WHERE[e] ||= []).push(r))));
 
+// HiFi.nl previews per room (hifi.js). A paragraph shared by several exhibitors is shown once, under the first of them.
+// English mode shows our translation (x.en) when there is one, otherwise HiFi.nl's Dutch text; search covers both.
+const PV = {};
+HIFI.forEach((x,i)=>x.rooms.forEach(r=>(PV[r] ||= []).push({...x,i})));
+
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hl = (t,q) => { if(!q) return esc(t); const i=t.toLowerCase().indexOf(q); return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); };
+// Preview texts are long Dutch prose, so they only match at the start of a word and from 3 characters on
+// ("EL50", "open baffle"); otherwise "de" or "an" would hit every room. A number stays a room-number search.
+let wordQ=null, wordRx=null;
+const wordRe = q => { if(q!==wordQ){ wordQ=q; wordRx = q.length<3 || /^\d+$/.test(q) ? null : new RegExp("(?<![\\p{L}\\p{N}])"+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"iu"); } return wordRx; };
+const pvHit = (text,q) => { const rx=wordRe(q); return !!rx && !!text && rx.test(text); };
+const pvMatch = (x,q) => pvHit(x.text,q) || pvHit(x.en,q);
+const hlWords = (text,q) => { const rx=wordRe(q); if(!rx) return esc(text); let out="", at=0;
+  for(const m of text.matchAll(new RegExp(rx.source,"giu"))){ out+=esc(text.slice(at,m.index))+"<mark>"+esc(m[0])+"</mark>"; at=m.index+m[0].length; }
+  return out+esc(text.slice(at)); };
 const isNum = r => /^\d+$/.test(r);
 const rname = r => isNum(r) ? t("room_label",{n:r}) : r;
 const reduceMotion = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -70,6 +82,11 @@ PLAN.slants.forEach(([z,pts])=>el("polygon",{points:pts,class:"corr z-"+z},L.cor
 // Rooms
 const spots = {};
 const brandsOf = exs => exs.flatMap(e=>EX[e]&&EX[e].length?EX[e]:[e]);
+// Lines for a room block: every vendor is bold (v). One whose only brand is itself is a single line; otherwise
+// a "Vendor:" header line goes above its brands. A blank line separates vendors. nb = not a brand line.
+const same = (a,b) => a.toLowerCase()===b.toLowerCase();
+const roomLines = exs => exs.flatMap((e,i)=>{ const b=brandsOf([e]), gap=i?[{t:"",nb:true}]:[];
+  return [...gap, ...(b.length===1 && same(b[0],e) ? [{t:e,v:true}] : [{t:e+":",v:true,nb:true},...b.map(t=>({t}))])]; });
 const trim = (s,maxChars) => s.length>maxChars ? s.slice(0,Math.max(3,Math.floor(maxChars)-1))+"…" : s;
 const big = r => !isNum(r);
 Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
@@ -90,46 +107,53 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
     const star=el("text",{x:x+w-2,y:y+2,class:"star","font-size":ifs.toFixed(1)},g); star.textContent="★";
     const brand = inUse(r) && !vertical ? el("text",{x:cx,class:"rbrand"},g) : null;
     g.setAttribute("tabindex","0"); g.setAttribute("role","button");
-    spots[r]={g,x,y,w,h,vertical,fsFit,ifs,label:t,check,star,brand,brands:brandsOf(info.exs)};
+    spots[r]={g,x,y,w,h,vertical,fsFit,ifs,label:t,check,star,brand,brands:roomLines(info.exs)};
   }
 });
 /* Level of detail: zoomed out a room shows its number and one brand (+N). Zoomed in, text stops growing
    on screen (it's capped at a pixel size) and the freed space fills with more brands. Once everything fits,
-   the text may grow again, up to its zoomed-out size in map units. k = px per svg unit. */
+   the text may grow again, up to its zoomed-out size in map units. k = px per svg unit.
+   Runs on every zoom frame, so text lines are only rebuilt when their content changes; otherwise just resized. */
 const LABEL_PX=15, BRAND_PX=11, ICON_PX=13, MIN_READ_PX=8, MARKER_K=1.6;
+const setA = (n,k,v) => { if(n.getAttribute(k)!==v) n.setAttribute(k,v); };
 function layoutRooms(k){
   Object.values(spots).forEach(s=>{
     const {x,y,w,h,fsFit,brand,brands}=s, cx=x+w/2, cy=y+h/2;
     let fs=Math.min(fsFit, LABEL_PX/k);
-    const ifs=Math.min(s.ifs, ICON_PX/k);
-    s.check.setAttribute("font-size",ifs.toFixed(2)); s.star.setAttribute("font-size",ifs.toFixed(2));
-    if(!brand){ s.label.setAttribute("font-size",fs.toFixed(2)); s.label.setAttribute("y",cy); return; }
+    const ifs=Math.min(s.ifs, ICON_PX/k).toFixed(2);
+    setA(s.check,"font-size",ifs); setA(s.star,"font-size",ifs);
+    if(!brand){ setA(s.label,"font-size",fs.toFixed(2)); setA(s.label,"y",String(cy)); return; }
     const bfsMax=Math.max(6,Math.min(fsFit*.55,w/9));
     let bfs=Math.min(bfsMax, BRAND_PX/k);
     // Extra lines only once they're readable; below that, the one-line headline as before.
     let n = bfs*k>=MIN_READ_PX ? Math.floor((h - 2*Math.max(2,bfs*.4) - fs*1.15)/bfs/1.2) : 0;
     if(n<=1) n = h>=fs*1.75 ? 1 : 0;
-    const lines = n>=brands.length ? brands.slice() : brands.slice(0,n);
-    const more = n && n<brands.length ? " +"+(brands.length-n) : ""; // suffix of the last line, never trimmed away
+    // The one-line headline stays a brand; with more lines, a cut-off list never ends in a blank line or a vendor header
+    const lines = n>=brands.length ? brands.slice() : n===1 ? brands.filter(l=>!l.nb).slice(0,1) : brands.slice(0,n);
+    while(lines.length<brands.length && lines.length>1 && lines[lines.length-1].nb) lines.pop();
+    const hidden = brands.filter(l=>!l.nb).length - lines.filter(l=>!l.nb).length; // "+N" counts brands only
+    const more = hidden ? " +"+hidden : ""; // suffix of the last line, never trimmed away
     if(lines.length===brands.length){
-      const longest=Math.max(...lines.map(l=>l.length));
+      const longest=Math.max(...lines.map(l=>l.t.length));
       const grow=Math.min(1.5, fsFit/fs, bfsMax/bfs, h*.85/(fs*1.15+lines.length*bfs*1.2), w*.85/(longest*bfs*.62));
       if(grow>1){ fs*=grow; bfs*=grow; }
     }
     const lh=bfs*1.2, top = cy - (fs*1.15 + lines.length*lh)/2;
-    s.label.setAttribute("font-size",fs.toFixed(2));
-    s.label.setAttribute("y", lines.length ? top+fs*.575 : cy);
-    brand.setAttribute("font-size",bfs.toFixed(2));
-    brand.textContent="";
+    setA(s.label,"font-size",fs.toFixed(2));
+    setA(s.label,"y", String(lines.length ? +(top+fs*.575).toFixed(2) : cy));
+    setA(brand,"font-size",bfs.toFixed(2));
     const maxChars = w/(bfs*0.55);
-    lines.forEach((line,i)=>{
-      const ts=el("tspan",{x:cx,y:(top+fs*1.15+lh*(i+.5)).toFixed(2)},brand);
-      ts.textContent = i===lines.length-1 && more ? trim(line,maxChars-more.length)+more : trim(line,maxChars);
-    });
+    const texts = lines.map((line,i)=>i===lines.length-1 && more ? trim(line.t,maxChars-more.length)+more : trim(line.t,maxChars));
+    const key = lines.map(l=>l.v?"v":"-").join(""); // which lines exist; their text may change (trim) without a rebuild
+    if(s.key!==key){
+      s.key=key; brand.textContent="";
+      s.tspans = lines.map(line=>el("tspan",{x:cx,...(line.v&&{class:"vendor"})},brand));
+    }
+    s.tspans.forEach((ts,i)=>{ if(ts.textContent!==texts[i]) ts.textContent=texts[i]; setA(ts,"y",(top+fs*1.15+lh*(i+.5)).toFixed(2)); });
   });
   // Facility icons, entrances and zone badges stop growing past MARKER_K px per unit.
   const m=Math.min(1, MARKER_K/k);
-  markers.forEach(([g,x,y])=>g.setAttribute("transform",`translate(${x} ${y})`+(m<1?` scale(${m.toFixed(3)})`:"")));
+  markers.forEach(([g,x,y])=>setA(g,"transform",`translate(${x} ${y})`+(m<1?` scale(${m.toFixed(3)})`:"")));
 }
 const markers = []; // [g, x, y]
 function relabelRooms(){
@@ -179,19 +203,16 @@ PLAN.badges.forEach(([z,x,y])=>{
 const FIT = {x:40, y:150, w:1680, h:1390};
 let vb = {...FIT};
 const MINW=80, MAXW=2600;
-function applyVB(){
+// Pointer and wheel events can fire several times per frame; the view is drawn at most once per frame,
+// with the room text resized in the same frame so it never lags behind the map.
+let vbFrame=0, laidK=null;
+function applyVB(){ if(!vbFrame) vbFrame=requestAnimationFrame(drawVB); }
+function drawVB(){
+  cancelAnimationFrame(vbFrame); vbFrame=0;
   svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
-  relayout();
+  const k=pxPerUnit();
+  if(k>0 && !(Math.abs(k/laidK-1)<0.004)){ laidK=k; layoutRooms(k); } // a smaller change in text size can't be seen
   placeTip();
-}
-// Room text is rebuilt only when the zoom crosses a quarter-octave step, not on every pinch frame.
-let lodStep=null, lodFrame=0;
-function relayout(){
-  const k=pxPerUnit(); if(!(k>0)) return;
-  const step=Math.round(Math.log2(k)*4);
-  if(step===lodStep) return;
-  lodStep=step; cancelAnimationFrame(lodFrame);
-  lodFrame=requestAnimationFrame(()=>layoutRooms(2**(step/4)));
 }
 // px per svg unit, taking preserveAspectRatio=meet into account
 function pxPerUnit(){ return Math.min(box.clientWidth/vb.w, box.clientHeight/vb.h); }
@@ -203,16 +224,15 @@ function toSvg(clientX,clientY){
 function zoomAt(factor, cx, cy){
   const nw = Math.min(MAXW, Math.max(MINW, vb.w*factor)); const f = nw/vb.w;
   vb = { x: cx-(cx-vb.x)*f, y: cy-(cy-vb.y)*f, w: nw, h: vb.h*f };
-  applyVB();
 }
 let anim=null;
 function animateTo(target){
-  cancelAnimationFrame(anim);
+  cancelAnimationFrame(anim); stopWheel();
   if(reduceMotion()){ vb=target; applyVB(); return; }
   const from={...vb}, t0=performance.now(), D=280;
   const step=t=>{ const k=Math.min(1,(t-t0)/D), e=1-Math.pow(1-k,3);
     vb={x:from.x+(target.x-from.x)*e, y:from.y+(target.y-from.y)*e, w:from.w+(target.w-from.w)*e, h:from.h+(target.h-from.h)*e};
-    applyVB(); if(k<1) anim=requestAnimationFrame(step); };
+    drawVB(); if(k<1) anim=requestAnimationFrame(step); };
   anim=requestAnimationFrame(step);
 }
 function fitView(){ animateTo({...FIT}); }
@@ -230,7 +250,7 @@ const ptrs = new Map(); let gesture=null;
 svg.addEventListener("pointerdown", e=>{
   svg.setPointerCapture(e.pointerId);
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  cancelAnimationFrame(anim);
+  cancelAnimationFrame(anim); stopWheel();
   gesture = { start:{...vb}, pts:[...ptrs.values()].map(p=>({...p})), moved:false,
               room: ptrs.size===1 ? e.target.closest(".room[tabindex]") : null };
 });
@@ -264,17 +284,35 @@ const endPtr = e=>{
 };
 svg.addEventListener("pointerup", endPtr);
 svg.addEventListener("pointercancel", endPtr);
+/* Wheel zoom glides: each notch adds to a pending zoom (log scale) that is eased out over the next frames,
+   around the point under the cursor, instead of jumping ~16% at once. */
+let wheel=null; // {z: pending log zoom, cx, cy, t: last frame time, raf}
+function stopWheel(){ if(wheel){ cancelAnimationFrame(wheel.raf); wheel=null; } }
+function wheelStep(t){
+  const dt = wheel.t==null ? 16 : Math.min(64, Math.max(1, t-wheel.t)); wheel.t=t;
+  let z = wheel.z*(1-Math.exp(-dt/70)); // ~70 ms time constant
+  if(Math.abs(wheel.z-z)<1e-3) z=wheel.z; // land exactly on the target
+  const w0=vb.w;
+  zoomAt(Math.exp(z), wheel.cx, wheel.cy); drawVB();
+  wheel.z-=z;
+  if(!wheel.z || vb.w===w0) wheel=null; // done, or held at the zoom limit
+  else wheel.raf=requestAnimationFrame(wheelStep);
+}
 svg.addEventListener("wheel", e=>{
   e.preventDefault();
-  const c=toSvg(e.clientX,e.clientY);
-  zoomAt(Math.exp(e.deltaY*(e.ctrlKey?0.01:0.0015)), c.x, c.y);
+  cancelAnimationFrame(anim);
+  const dy = e.deltaY*(e.deltaMode===1?33:e.deltaMode===2?800:1); // lines/pages (Firefox) to pixels
+  const z = dy*(e.ctrlKey?0.01:0.0015), c=toSvg(e.clientX,e.clientY);
+  if(reduceMotion()){ zoomAt(Math.exp(z), c.x, c.y); applyVB(); return; }
+  if(!wheel){ wheel={z:0, t:null}; wheel.raf=requestAnimationFrame(wheelStep); }
+  wheel.z = Math.max(-3, Math.min(3, wheel.z+z)); wheel.cx=c.x; wheel.cy=c.y;
 },{passive:false});
 svg.addEventListener("keydown", e=>{
   const g=e.target.closest(".room[tabindex]");
   if(g && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); select(g.dataset.r,true); }
 });
 addEventListener("keydown", e=>{ if(e.key==="Escape") closeTip(); });
-new ResizeObserver(()=>applyVB()).observe(box);
+new ResizeObserver(()=>drawVB()).observe(box); // already inside a frame: draw now, not one frame late
 
 /* Fullscreen: real Fullscreen API where available, otherwise (iPhone) a fixed full-window overlay. */
 const fullBtn=document.getElementById("full");
@@ -314,8 +352,22 @@ hiBtn.addEventListener("click",()=>setHi(svg.classList.contains("show-orig")));
 /* ---------- tooltip ---------- */
 const tip = document.getElementById("tip");
 let sel=null;
+let pvOpen={}; // preview index -> expanded/collapsed by the user, for the open room; otherwise a preview expands when the search matches it
+// A preview shows its first line; "Read more" expands it. The source line always shows, and says when the text is our translation.
+function previews(r, e, q){
+  return (PV[r]||[]).filter(x=>ROOMS[r].exs.find(k=>x.ex.includes(k))===e).map(x=>{
+    const open = x.i in pvOpen ? pvOpen[x.i] : pvMatch(x,q);
+    const en = LANG==="en" && x.en;
+    const lead = x.ex.length>1 ? `<b>${esc(x.h)}.</b> ` : "";
+    const note = LANG!=="en" ? "" : " "+t(en?"pv_translated":"pv_dutch");
+    return `<div class="pv${open?" open":""}" data-pv="${x.i}"><p id="pv${x.i}" lang="${en?"en":"nl"}">${lead}${hlWords(en||x.text,q)}</p>
+      <div class="pvf"><button type="button" class="more" aria-expanded="${open}" aria-controls="pv${x.i}">${esc(t(open?"read_less":"read_more"))}</button>
+      <span class="src">${esc(t("pv_source"))} <a href="${esc(HIFI_URL[x.p])}" target="_blank" rel="noopener">HiFi.nl</a>${esc(note)}</span></div></div>`;
+  }).join("");
+}
 function select(r, move){
   if(!ROOMS[r]) return;
+  if(r!==sel) pvOpen={};
   sel=r;
   Object.entries(spots).forEach(([k,s])=>s.g.classList.toggle("sel", k===r));
   const {z,exs} = ROOMS[r]; const q=cur();
@@ -325,7 +377,7 @@ function select(r, move){
     const also = others.length ? `<div class="also">${esc(t("also_in"))}${others.map(o=>`<button type="button" data-go="${esc(o)}">${esc(rname(o))}</button>`).join(", ")}</div>` : "";
     const link = URL_EX[e] ? `<a class="ext" href="${esc(URL_EX[e])}" target="_blank" rel="noopener">${esc(t("view_page"))}</a>` : "";
     const b = list.length ? list.map(x=>hl(x,q)).join(", ") : `<span class="none">${esc(t("no_brands"))}</span>`;
-    return `<div class="ex"><div class="exn"><span>${hl(e,q)}</span>${link}</div><div class="brands">${b}</div>${also}</div>`;
+    return `<div class="ex"><div class="exn"><span>${hl(e,q)}</span>${link}</div><div class="brands">${b}</div>${also}${previews(r,e,q)}</div>`;
   }).join("");
   tip.style.setProperty("--zc", z.color);
   if(!inUse(r)){
@@ -352,6 +404,12 @@ function select(r, move){
     tip.querySelectorAll(".rate button").forEach(x=>x.setAttribute("aria-pressed", v>=+x.dataset.n)); }));
   tip.querySelector(".x").addEventListener("click",closeTip);
   tip.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go,true)));
+  tip.querySelectorAll(".pv .more").forEach(b=>b.addEventListener("click",()=>{
+    const d=b.closest(".pv"), on=!d.classList.contains("open");
+    pvOpen[d.dataset.pv]=on; d.classList.toggle("open",on);
+    b.setAttribute("aria-expanded",on); b.textContent=t(on?"read_less":"read_more");
+    placeTip();
+  }));
   tip.hidden=false;
   if(move) focusRoom(r);
   placeTip();
@@ -388,6 +446,7 @@ function matchRoom(r,q){
   if(!q) return false;
   if(r.toLowerCase()===q || (!isNum(q) && r.toLowerCase().includes(q))) return true;
   if((roomState(r).note||"").toLowerCase().includes(q)) return true;
+  if((PV[r]||[]).some(x=>pvMatch(x,q))) return true;
   return ROOMS[r].exs.some(e=>e.toLowerCase().includes(q) || (EX[e]||[]).some(b=>b.toLowerCase().includes(q)));
 }
 let zones=new Set(), favOnly=false, hideVisited=false; // empty set = all zones
@@ -584,7 +643,7 @@ applyI18n();
 setHi(store.get("hd")!==false);
 Object.keys(spots).forEach(paintRoom);
 renderFavs();
-applyVB();
+drawVB();
 refresh();
 importSharedFavs();
 addEventListener("hashchange", importSharedFavs); // a shared link opened while the app is already open

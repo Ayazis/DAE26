@@ -14,8 +14,8 @@ Last scrape: see `sourcedata/scraped.json` (`scraped_at`, plus counts per source
 | 3 | Brand index (DAE) | https://dutchaudioevent.nl/merken (paged `?letter=A…Z, Ø`) | Every brand name and its page URL | `dutchaudioevent.nl/brands.json` |
 | 4 | Brand pages (DAE) | `https://dutchaudioevent.nl/<brand>` for example [/aavik](https://dutchaudioevent.nl/aavik) | Product categories (tags such as *versterkers*, *dac*, *audio streamers*), which exhibitor shows it and in which room, website link, description | `dutchaudioevent.nl/brands.json` |
 | 5 | Floor plan (DAE) | https://dutchaudioevent.nl/assets/upload/images/dae2026floor.jpg | The official floor plan, 2067×1680. `plan.jpg` is a copy of it | `dutchaudioevent.nl/dae2026floor.jpg` |
-| 6 | HiFi.nl preview, A–M | https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit | Event facts (hours, prices, shuttle, sponsors) and one paragraph per exhibitor: room, zone and what they will demo, including premières | `hifi.nl/article-p1.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
-| 7 | HiFi.nl preview, N–Z | https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit/2 | Same as 6, for exhibitors N–Z | `hifi.nl/article-p2.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
+| 6 | HiFi.nl preview, A–M | https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets | Event facts (hours, prices, shuttle, sponsors) and one paragraph per exhibitor: room, zone and what they will demo, including premières | `hifi.nl/article-p1.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
+| 7 | HiFi.nl preview, N–Z | https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets/2 | Same as 6, for exhibitors N–Z | `hifi.nl/article-p2.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
 
 ### Known but not scraped
 
@@ -32,16 +32,18 @@ Last scrape: see `sourcedata/scraped.json` (`scraped_at`, plus counts per source
 ```
 sourcedata/
   scrape.py                     fetch + parse script (Python 3, standard library only)
+  build_hifi.py                 hifi.nl/exhibitors.json -> ../hifi.js, matched to data.js exhibitors and rooms
   scraped.json                  time of the last scrape and item counts
   dutchaudioevent.nl/
     exhibitors.json             sources 1 + 2
     brands.json                 sources 3 + 4
     dae2026floor.jpg            source 5
-  hifi.nl/                      git-ignored (article text is copyrighted); run `scrape.py --only hifi` to create it
-    article-p1.html             source 6, raw HTML
-    article-p2.html             source 7, raw HTML
+  hifi.nl/
+    article-p1.html             source 6, raw HTML (git-ignored: holds per-visit tokens)
+    article-p2.html             source 7, raw HTML (git-ignored: holds per-visit tokens)
     article.md                  both pages as text, one "### Exhibitor | Room | Zone" section each
     exhibitors.json             [{exhibitor, where, page, text}] parsed from the article
+    translations-en.json        {heading: {src, en}}: our English translation of each paragraph (src = hash of the Dutch text)
   .cache/                       raw HTML of every fetched page (git-ignored)
 ```
 
@@ -91,9 +93,9 @@ sourcedata/
 | `URL_EX` (exhibitor → page) | `exhibitors.json` → `url` |
 | `BOX` (room hotspots) | Traced by hand from `plan.jpg` (source 5) |
 | (not used yet) product categories | `brands.json` → `categories`, for the Phase 3 category filter |
-| (not used yet) demo highlights | `hifi.nl/exhibitors.json` → `text` |
+| `HIFI` in `hifi.js` (room preview, searchable) | `hifi.nl/exhibitors.json` + `hifi.nl/translations-en.json`, via `sourcedata/build_hifi.py` |
 
-`data.js` is still edited by hand; the script only refreshes the snapshots. Diff the JSON after a refresh to see what changed on the site.
+`data.js` is still edited by hand; the script only refreshes the snapshots. `hifi.js` is generated: run `python 2026/sourcedata/build_hifi.py` after a HiFi.nl refresh or after renaming an exhibitor in `data.js`. It stops when a HiFi.nl heading has no matching exhibitor; add it to `ALIAS` in the script. It also strips page footers the scraper left in a few paragraphs, and warns when a paragraph has no English translation or its Dutch text changed since it was translated; update `translations-en.json` then (until then English mode shows the Dutch text). Diff the JSON after a refresh to see what changed on the site.
 
 ### Cross-check of the 28 Sep 2026 scrape against `data.js`
 
@@ -120,4 +122,4 @@ If the sites change their markup, the parsers (regular expressions in `scrape.py
 
 We have permission from the Dutch Audio Event organisation to use the dutchaudioevent.nl content, so those snapshots are committed.
 
-The HiFi.nl article text belongs to HiFi.nl; we have no such permission. Its snapshot (`sourcedata/hifi.nl/`) is git-ignored so the article isn't republished via GitHub Pages; it only exists locally after running the script.
+We also have permission from HiFi.nl to use their article text, so its parsed snapshot (`hifi.nl/article.md` and `hifi.nl/exhibitors.json`) is committed too. The English translations in `hifi.nl/translations-en.json` are ours, and the app labels them as translated. The raw HTML pages stay git-ignored because they contain per-visit tokens.

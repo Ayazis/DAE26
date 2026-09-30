@@ -101,3 +101,24 @@ test("rooms without exhibitors open as not in use and can't be favorited", async
   await expect(page.locator("#tip .favb, #tip .note, #tip .vis")).toHaveCount(0);
   await expect(page.locator(".room[data-r='50']")).toHaveClass(/\bunused\b/);
 });
+
+test("zoomed in, every vendor is shown in bold above its brands", async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => layoutRooms(8)); // enough px per unit for every line to fit
+  const lines = r => page.locator(`.room[data-r='${r}'] .rbrand tspan`);
+  const bold = r => page.locator(`.room[data-r='${r}'] .rbrand .vendor`);
+  await expect(lines("3")).toHaveText(["Dynaudio Benelux:", "Dynaudio", "Octave Audio"]);
+  await expect(bold("3")).toHaveText(["Dynaudio Benelux:"]);
+  await expect(lines("34")).toHaveText(["Sonos Europe:", "Sonos"]); // single brand under another name
+  await expect(bold("34")).toHaveText(["Sonos Europe:"]);
+  // A vendor whose only brand is itself is one bold line; both vendors in room 24 are bold, a blank line between them
+  await expect(lines("24")).toHaveText(["Manger Audio", "", "SPL electronics:", "SPL", "Manger", "Transrotor"]);
+  await expect(bold("24")).toHaveText(["Manger Audio", "SPL electronics:"]);
+  // Cut off after the first vendor, the list ends on its last brand, not on the blank line or the next header
+  const cut = await page.evaluate(() => { const s = spots["24"], h = s.h; s.h = h/3; layoutRooms(8); s.h = h;
+    return [...s.brand.querySelectorAll("tspan")].map(t => t.textContent); });
+  expect(cut.length).toBeGreaterThan(0);
+  expect(cut[cut.length-1]).toMatch(/\S \+\d+$/);
+  await page.evaluate(() => layoutRooms(0.5)); // zoomed out, the headline is still one brand
+  await expect(lines("3")).toHaveText(["Dynaudio +1"]);
+});
