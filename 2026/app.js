@@ -334,14 +334,17 @@ hiBtn.addEventListener("click",()=>setHi(svg.classList.contains("show-orig")));
 /* ---------- tooltip ---------- */
 const tip = document.getElementById("tip");
 let sel=null;
-let pvOpen={}; // preview index -> opened/closed by the user, for the open room; otherwise a preview opens when the search matches it
+let pvOpen={}; // preview index -> expanded/collapsed by the user, for the open room; otherwise a preview expands when the search matches it
+// A preview shows its first line; "Read more" expands it. The source line always shows, and says when the text is our translation.
 function previews(r, e, q){
   return (PV[r]||[]).filter(x=>ROOMS[r].exs.find(k=>x.ex.includes(k))===e).map(x=>{
     const open = x.i in pvOpen ? pvOpen[x.i] : pvMatch(x,q);
     const en = LANG==="en" && x.en;
     const lead = x.ex.length>1 ? `<b>${esc(x.h)}.</b> ` : "";
-    return `<details class="pv" data-pv="${x.i}"${open?" open":""}><summary>${esc(t(en||LANG!=="en"?"preview":"preview_dutch"))}</summary>
-      <p lang="${en?"en":"nl"}">${lead}${hlWords(en||x.text,q)}</p><a class="ext" href="${esc(HIFI_URL[x.p])}" target="_blank" rel="noopener">${esc(t("preview_read"))}</a></details>`;
+    const note = LANG!=="en" ? "" : " "+t(en?"pv_translated":"pv_dutch");
+    return `<div class="pv${open?" open":""}" data-pv="${x.i}"><p id="pv${x.i}" lang="${en?"en":"nl"}">${lead}${hlWords(en||x.text,q)}</p>
+      <div class="pvf"><button type="button" class="more" aria-expanded="${open}" aria-controls="pv${x.i}">${esc(t(open?"read_less":"read_more"))}</button>
+      <span class="src">${esc(t("pv_source"))} <a href="${esc(HIFI_URL[x.p])}" target="_blank" rel="noopener">HiFi.nl</a>${esc(note)}</span></div></div>`;
   }).join("");
 }
 function select(r, move){
@@ -383,10 +386,12 @@ function select(r, move){
     tip.querySelectorAll(".rate button").forEach(x=>x.setAttribute("aria-pressed", v>=+x.dataset.n)); }));
   tip.querySelector(".x").addEventListener("click",closeTip);
   tip.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go,true)));
-  tip.querySelectorAll(".pv").forEach(d=>{
-    d.querySelector("summary").addEventListener("click",()=>{ pvOpen[d.dataset.pv]=!d.open; });
-    d.addEventListener("toggle",placeTip);
-  });
+  tip.querySelectorAll(".pv .more").forEach(b=>b.addEventListener("click",()=>{
+    const d=b.closest(".pv"), on=!d.classList.contains("open");
+    pvOpen[d.dataset.pv]=on; d.classList.toggle("open",on);
+    b.setAttribute("aria-expanded",on); b.textContent=t(on?"read_less":"read_more");
+    placeTip();
+  }));
   tip.hidden=false;
   if(move) focusRoom(r);
   placeTip();
