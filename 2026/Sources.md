@@ -14,8 +14,8 @@ Last scrape: see `sourcedata/scraped.json` (`scraped_at`, plus counts per source
 | 3 | Brand index (DAE) | https://dutchaudioevent.nl/merken (paged `?letter=A…Z, Ø`) | Every brand name and its page URL | `dutchaudioevent.nl/brands.json` |
 | 4 | Brand pages (DAE) | `https://dutchaudioevent.nl/<brand>` for example [/aavik](https://dutchaudioevent.nl/aavik) | Product categories (tags such as *versterkers*, *dac*, *audio streamers*), which exhibitor shows it and in which room, website link, description | `dutchaudioevent.nl/brands.json` |
 | 5 | Floor plan (DAE) | https://dutchaudioevent.nl/assets/upload/images/dae2026floor.jpg | The official floor plan, 2067×1680. `plan.jpg` is a copy of it | `dutchaudioevent.nl/dae2026floor.jpg` |
-| 6 | HiFi.nl preview, A–M | https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit | Event facts (hours, prices, shuttle, sponsors) and one paragraph per exhibitor: room, zone and what they will demo, including premières | `hifi.nl/article-p1.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
-| 7 | HiFi.nl preview, N–Z | https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit/2 | Same as 6, for exhibitors N–Z | `hifi.nl/article-p2.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
+| 6 | HiFi.nl preview, A–M | https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets | Event facts (hours, prices, shuttle, sponsors) and one paragraph per exhibitor: room, zone and what they will demo, including premières | `hifi.nl/article-p1.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
+| 7 | HiFi.nl preview, N–Z | https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets/2 | Same as 6, for exhibitors N–Z | `hifi.nl/article-p2.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
 
 ### Known but not scraped
 

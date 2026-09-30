@@ -23,8 +23,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 APP = HERE.parent
 PAGES = {
-    1: "https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit",
-    2: "https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit/2",
+    1: "https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets",
+    2: "https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets/2",
 }
 
 # HiFi.nl heading -> EX keys in data.js, where the plain name doesn't match.

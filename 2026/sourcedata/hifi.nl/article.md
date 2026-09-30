@@ -1,4 +1,4 @@
-<!-- page 1: https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit -->
+<!-- page 1: https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets -->
 
 Ja, het kan nóg beter! De grootste audioshow ooit in het Nederlandstalige hifi-landschap gaat groter groeien. Op zaterdag 10 en zondag 11 oktober aanstaande wordt het in het NH Koningshof te Veldhoven genieten als nooit tevoren van alles wat met premium hifi te maken heeft.
 
@@ -269,7 +269,7 @@ Een unieke verzameling high-end audiomerken en -apparaten op één plek, dat is 
 Wordt vervolgd op pagina 2 voor alle DAE-exposanten van N t/m Z!
 
 Bij aanmelden ga je akkoord met onzealgemene voorwaarden. Je kunt je altijd afmelden.
-<!-- page 2: https://hifi.nl/artikel/dutch-audio-event-2026-op-10-en-11-oktober-groter-dan-ooit/2 -->
+<!-- page 2: https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets/2 -->
 
 ### Necto Systems | Binnenhof Foyer | Blauwe zone
 
