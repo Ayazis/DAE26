@@ -90,7 +90,7 @@ const I18N = {
     title: "DAE 2026 Interactieve plattegrond",
     h1: "Dutch Audio Event 2026 · Interactieve plattegrond",
     dark_mode: "Donkere modus",
-    sub_html: 'LET OP: dit is een onafhankelijke, niet-officiële fanplattegrond en is niet gelieerd aan of goedgekeurd door Dutch Audio Event. Zie de <a href="terms.html">Voorwaarden</a> en het <a href="privacy.html">Privacybeleid</a>.',
+    sub_html: 'LET OP: dit is een onafhankelijke, niet-officiële fanplattegrond en is niet gelieerd aan Dutch Audio Event. Zie de <a href="terms.html">Voorwaarden</a> en het <a href="privacy.html">Privacybeleid</a>.',
     search_placeholder: "Zoek een merk, exposant, ruimte of notitie…",
     search_label: "Zoeken",
     fullscreen: "Volledig scherm",
