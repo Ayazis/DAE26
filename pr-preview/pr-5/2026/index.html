@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="styles.css">
+<link rel="preload" href="data.js" as="script">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -88,9 +89,8 @@
   </div>
 </div>
 
-<!-- hifi.js (HiFi.nl previews) is not listed here: app.js loads it after the map is on screen. -->
+<!-- data.js (exhibitors) and then hifi.js (HiFi.nl previews) are not listed here: app.js loads them once the map is drawn. -->
 <script src="i18n.js" defer></script>
-<script src="data.js" defer></script>
 <script src="plan.js" defer></script>
 <script src="app.js" defer></script>
 <script src="analytics.js" defer></script>

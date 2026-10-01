@@ -20,12 +20,14 @@ function setRoom(r, patch){
   paintRoom(r); renderFavs();
 }
 
+// Geometry (plan.js: ZONES, BOX) is enough to draw the map; who is in which room (data.js) arrives later and is
+// filled in by applyData(). Until then rooms have no exhibitors and dataReady is false.
 const ROOMS = {}; // name -> {z, exs}
-ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>{ ROOMS[r] = {z, exs}; }));
+ZONES.forEach(z=>z.rooms.forEach(r=>{ ROOMS[r] = {z, exs:[]}; }));
+let dataReady = false;
 // Rooms listed without exhibitors are shown and clickable, but marked "not in use" and can't be favorited or noted.
 const inUse = r => ROOMS[r].exs.length>0;
 const WHERE = {};
-ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>exs.forEach(e=>(WHERE[e] ||= []).push(r))));
 
 // HiFi.nl previews per room (hifi.js). A paragraph shared by several exhibitors is shown once, under the first of them.
 // English mode shows our translation (x.en) when there is one, otherwise HiFi.nl's Dutch text; search covers both.
@@ -94,7 +96,7 @@ const big = r => !isNum(r);
 Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
   const x=px*W/100, y=py*H/100, w=pw*W/100, h=ph*H/100;
   const info = ROOMS[r];
-  const g = el("g",{class:"room"+(info?" z-"+info.z.id:" empty")+(info&&!inUse(r)?" unused":"")+(big(r)?" hall":""),"data-r":r},L.rooms);
+  const g = el("g",{class:"room"+(info?" z-"+info.z.id:" empty")+(big(r)?" hall":""),"data-r":r},L.rooms);
   rect(x,y,w,h,"rbox",g);
   const vertical = !isNum(r) && h>w*1.6 && w<50; // room numbers always stay horizontal
   const label = isNum(r) ? r : r.replace(/ \(.*\)/,"").replace(/ foyer$/i," foyer");
@@ -107,9 +109,9 @@ Object.entries(BOX).forEach(([r,[px,py,pw,ph]])=>{
     const ifs = Math.max(9,Math.min(15,w*.24,h*.4));
     const check=el("text",{x:x+3,y:y+2,class:"check","font-size":ifs.toFixed(1)},g); check.textContent="✓";
     const star=el("text",{x:x+w-2,y:y+2,class:"star","font-size":ifs.toFixed(1)},g); star.textContent="★";
-    const brand = inUse(r) && !vertical ? el("text",{x:cx,class:"rbrand"},g) : null;
+    const brand = !vertical ? el("text",{x:cx,class:"rbrand"},g) : null; // applyData() drops it for rooms not in use
     g.setAttribute("tabindex","0"); g.setAttribute("role","button");
-    spots[r]={g,x,y,w,h,vertical,fsFit,ifs,label:t,check,star,brand,brands:roomLines(info.exs)};
+    spots[r]={g,x,y,w,h,vertical,fsFit,ifs,label:t,check,star,brand,brands:[]};
   }
 });
 /* Level of detail: zoomed out a room shows its number and one brand (+N). Zoomed in, text stops growing
@@ -124,7 +126,7 @@ function layoutRooms(k){
     let fs=Math.min(fsFit, LABEL_PX/k);
     const ifs=Math.min(s.ifs, ICON_PX/k).toFixed(2);
     setA(s.check,"font-size",ifs); setA(s.star,"font-size",ifs);
-    if(!brand){ setA(s.label,"font-size",fs.toFixed(2)); setA(s.label,"y",String(cy)); return; }
+    if(!brand || !brands.length){ setA(s.label,"font-size",fs.toFixed(2)); setA(s.label,"y",String(cy)); return; }
     const bfsMax=Math.max(6,Math.min(fsFit*.55,w/9));
     let bfs=Math.min(bfsMax, BRAND_PX/k);
     // Extra lines only once they're readable; below that, the one-line headline as before.
@@ -368,7 +370,7 @@ function previews(r, e, q){
   }).join("");
 }
 function select(r, move){
-  if(!ROOMS[r]) return;
+  if(!ROOMS[r] || !dataReady) return;
   if(r!==sel) pvOpen={};
   sel=r;
   Object.entries(spots).forEach(([k,s])=>s.g.classList.toggle("sel", k===r));
@@ -492,7 +494,7 @@ if(FEATURES.zoneToggles) ZONES.forEach(z=>{
 const ZBOX = {}; // zone -> bbox of its rooms and corridors
 function grow(b,x,y,w,h){ b.x1=Math.min(b.x1,x); b.y1=Math.min(b.y1,y); b.x2=Math.max(b.x2,x+w); b.y2=Math.max(b.y2,y+h); }
 ZONES.forEach(z=>{ const b={x1:1e9,y1:1e9,x2:-1e9,y2:-1e9};
-  z.rooms.forEach(([r])=>{ const s=spots[r]; if(s) grow(b,s.x,s.y,s.w,s.h); });
+  z.rooms.forEach(r=>{ const s=spots[r]; if(s) grow(b,s.x,s.y,s.w,s.h); });
   PLAN.corridors.filter(c=>c[0]===z.id).forEach(([,x,y,w,h])=>grow(b,x,y,w,h));
   ZBOX[z.id]=b; });
 const clip = el("clipPath",{id:"zclip"}, el("defs",{},svg));
@@ -527,10 +529,11 @@ function paintRoom(r){
   s.g.classList.toggle("noted", !!st.note);
   s.g.classList.toggle("visited", !!st.visited);
 }
-const ORDER = {}; ZONES.forEach((z,zi)=>z.rooms.forEach(([r],ri)=>ORDER[r]=zi*1000+(isNum(r)?+r:500+ri)));
+const ORDER = {}; ZONES.forEach((z,zi)=>z.rooms.forEach((r,ri)=>ORDER[r]=zi*1000+(isNum(r)?+r:500+ri)));
 const byOrder = (a,b)=>ORDER[a]-ORDER[b];
 const favList = () => Object.keys(store.get("rooms")||{}).filter(r=>ROOMS[r] && inUse(r) && roomState(r).fav).sort(byOrder);
 function renderFavs(){
+  if(!dataReady) return; // the list and progress need to know which rooms are in use
   const list=document.getElementById("favs"), rooms=favList();
   document.getElementById("favcount").textContent = rooms.length ? `(${rooms.length})` : "";
   const all=Object.keys(spots).filter(inUse), seen=all.filter(r=>roomState(r).visited).length, favSeen=rooms.filter(r=>roomState(r).visited).length;
@@ -579,6 +582,7 @@ document.getElementById("share").addEventListener("click", async ()=>{
   }catch(e){ if(e.name!=="AbortError") prompt(t("copy_this_link"), url); }
 });
 function importSharedFavs(){
+  if(!dataReady) return; // applyData() runs this once the rooms are known
   const m=location.hash.match(/^#fav=(.+)$/); if(!m) return;
   history.replaceState(null,"",location.pathname+location.search);
   const dec = s => { try{ return decodeURIComponent(s); }catch(e){ return null; } };
@@ -644,11 +648,33 @@ applyI18n();
 { const t=store.get("theme"); setTheme(t==="light"||t==="dark" ? t : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
 setHi(store.get("hd")!==false);
 Object.keys(spots).forEach(paintRoom);
-renderFavs();
 drawVB();
-refresh();
-importSharedFavs();
 addEventListener("hashchange", importSharedFavs); // a shared link opened while the app is already open
+
+/* ---------- exhibitor data (data.js), loaded after the map is drawn ---------- */
+function applyData(){
+  Object.entries(OCCUPANTS).forEach(([r,exs])=>{
+    if(!ROOMS[r]) return;
+    ROOMS[r].exs = exs;
+    exs.forEach(e=>(WHERE[e] ||= []).push(r));
+  });
+  Object.entries(spots).forEach(([r,s])=>{
+    s.brands = roomLines(ROOMS[r].exs);
+    if(!inUse(r)){ s.g.classList.add("unused"); if(s.brand){ s.brand.remove(); s.brand=null; } }
+  });
+  dataReady = true;
+  relabelRooms();
+  laidK = 0; applyVB(); // lay the brand text out now that the rooms have brands
+  renderFavs();
+  refresh();
+  importSharedFavs();
+  loadHifi();
+}
+function loadData(){
+  const sc=document.createElement("script"); sc.src="data.js"; sc.onload=applyData;
+  document.head.appendChild(sc);
+}
+loadData();
 
 // HiFi.nl previews: fetched once the map is on screen, then indexed per room; search and an open tooltip are redrawn.
 function loadHifi(){
@@ -660,7 +686,6 @@ function loadHifi(){
   };
   document.head.appendChild(sc);
 }
-requestAnimationFrame(()=>setTimeout(loadHifi,0));
 
 // Optional cloud backup: loaded only when the flag is on and a client ID is set. Everything above works without it.
 if(FEATURES.cloudBackup && GDRIVE_CLIENT_ID){
