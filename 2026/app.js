@@ -412,10 +412,9 @@ function select(r, move){
     const d=b.closest(".pv"), on=!d.classList.contains("open");
     pvOpen[d.dataset.pv]=on; d.classList.toggle("open",on);
     b.setAttribute("aria-expanded",on); b.textContent=t(on?"read_less":"read_more");
-    fitPreviews(); placeTip();
+    placeTip();
   }));
   tip.hidden=false;
-  fitPreviews();
   if(move) focusRoom(r);
   placeTip();
 }
@@ -423,14 +422,6 @@ function closeTip(){
   sel=null; tip.hidden=true;
   Object.values(spots).forEach(s=>s.g.classList.remove("sel"));
 }
-// "Read more" only where there is more to read: a preview that fits on its single collapsed line has no button.
-function fitPreviews(){
-  tip.querySelectorAll(".pv").forEach(d=>{
-    const p=d.querySelector("p"), more=d.querySelector(".more");
-    more.hidden = d.classList.contains("open") ? p.scrollHeight <= parseFloat(getComputedStyle(p).lineHeight)*1.5 : p.scrollHeight <= p.clientHeight+1;
-  });
-}
-addEventListener("resize", ()=>{ if(sel && !tip.hidden) fitPreviews(); }); // line wrapping changes with the width
 function placeTip(){
   if(!sel || tip.hidden) return;
   const s=spots[sel], k=pxPerUnit();

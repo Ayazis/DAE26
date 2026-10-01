@@ -94,16 +94,4 @@ test.describe("HiFi.nl previews", () => {
     await page.fill("#q", "acm"); // refresh() redraws the open tooltip
     await expect(page.locator("#tip .pv")).toHaveClass(/\bopen\b/);
   });
-
-  test("Read more only shows when the preview is longer than its collapsed line", async ({ page }) => {
-    await open(page);
-    await openRoom(page, "36");
-    const pv = page.locator("#tip .pv"), more = pv.locator(".more");
-    await expect(more).toBeVisible();
-    // Shorten the text to a few words: nothing is cut off, so there is nothing to read more of.
-    await pv.locator("p").evaluate(n => { n.textContent = "Short."; });
-    await page.setViewportSize({ width: 1281, height: 900 }); // triggers the resize re-check
-    await expect(more).toBeHidden();
-    await expect(pv.locator(".src")).toBeVisible();
-  });
 });
