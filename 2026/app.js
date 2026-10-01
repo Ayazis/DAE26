@@ -1,6 +1,7 @@
 // Feature flags. zoneToggles: colour-zone filter buttons on the map (zone view logic stays, it just has no way to be triggered).
+// planToggle: "High res" switch to show the original plan JPG (plan.jpg) instead of the redrawn map. Off = always high res, button hidden.
 // cloudBackup: optional Google Drive backup (needs GDRIVE_CLIENT_ID). Off = nothing Google-related is loaded or shown.
-const FEATURES = { zoneToggles: false, cloudBackup: true };
+const FEATURES = { zoneToggles: false, planToggle: false, cloudBackup: true };
 const GDRIVE_CLIENT_ID = "643036601253-406hpgt3n0jsc755b723tum6uceuaieq.apps.googleusercontent.com";
 const store = (()=>{
   let d={};
@@ -350,7 +351,8 @@ document.addEventListener("keydown",e=>{ if(e.key!=="Escape" || !box.classList.c
 /* High res = the redrawn map (default). Off = the original plan JPG, rooms stay tappable on top of it. */
 const hiBtn=document.getElementById("hires");
 function setHi(on){ if(!on && !orig.hasAttribute("href")) orig.setAttribute("href","plan.jpg"); svg.classList.toggle("show-orig",!on); svg.classList.toggle("no-vec",!on); hiBtn.setAttribute("aria-checked",on); store.set("hd",on); }
-hiBtn.addEventListener("click",()=>setHi(svg.classList.contains("show-orig")));
+hiBtn.hidden=!FEATURES.planToggle;
+if(FEATURES.planToggle) hiBtn.addEventListener("click",()=>setHi(svg.classList.contains("show-orig")));
 
 
 /* ---------- tooltip ---------- */
@@ -646,7 +648,7 @@ impjson.addEventListener("change", async e=>{
 applyI18n();
 // First visit follows the system setting; after that the user's choice sticks.
 { const t=store.get("theme"); setTheme(t==="light"||t==="dark" ? t : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
-setHi(store.get("hd")!==false);
+setHi(!FEATURES.planToggle || store.get("hd")!==false);
 Object.keys(spots).forEach(paintRoom);
 drawVB();
 addEventListener("hashchange", importSharedFavs); // a shared link opened while the app is already open
