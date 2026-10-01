@@ -653,6 +653,7 @@ addEventListener("hashchange", importSharedFavs); // a shared link opened while 
 
 /* ---------- exhibitor data (data.js), loaded after the map is drawn ---------- */
 function applyData(){
+  if(dataReady) return;
   Object.entries(OCCUPANTS).forEach(([r,exs])=>{
     if(!ROOMS[r]) return;
     ROOMS[r].exs = exs;
@@ -670,10 +671,26 @@ function applyData(){
   importSharedFavs();
   loadHifi();
 }
+// A failed request, or a stale copy from an older version (no OCCUPANTS: its old const declarations fail to parse
+// next to plan.js), is retried with a cache-busting query, with growing pauses and again when the network or the app
+// comes back. Without this the map would stay drawn but inert.
+let dataTries=0, dataTimer=0, dataBusy=false;
 function loadData(){
-  const sc=document.createElement("script"); sc.src="data.js"; sc.onload=applyData;
+  if(dataReady || dataBusy) return;
+  dataBusy=true; clearTimeout(dataTimer);
+  const sc=document.createElement("script");
+  sc.src="data.js"+(dataTries ? "?r="+Date.now() : "");
+  const fail=()=>{
+    sc.remove(); dataBusy=false;
+    if(++dataTries===3) msg(t("data_error"));
+    dataTimer=setTimeout(loadData, Math.min(30000, 1000*2**dataTries));
+  };
+  sc.onload=()=>{ if(typeof OCCUPANTS==="undefined") fail(); else { dataBusy=false; applyData(); } };
+  sc.onerror=fail;
   document.head.appendChild(sc);
 }
+addEventListener("online", loadData);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) loadData(); });
 loadData();
 
 // HiFi.nl previews: fetched once the map is on screen, then indexed per room; search and an open tooltip are redrawn.
