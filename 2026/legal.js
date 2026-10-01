@@ -6,9 +6,11 @@ Object.assign(I18N.en, {
 
   pv_title: "Privacy policy – DAE 2026 Floor Map",
   pv_h1: "Privacy policy",
-  pv_intro_html: "<strong>DAE 2026 Floor Map</strong> is an unofficial, free floor map for the Dutch Audio Event 2026. It is not affiliated with the event organisers. Last updated: 26 September 2026.",
+  pv_intro_html: "<strong>DAE 2026 Floor Map</strong> is an unofficial, free floor map for the Dutch Audio Event 2026. It is not affiliated with the event organisers. Last updated: 29 September 2026.",
   pv_store_h: "What the app stores",
-  pv_store: "Your favorites, notes, visited marks, ratings and theme choice are stored only in your own browser (local storage) on your device. The app has no server, no accounts and no analytics, and the developer cannot see this data.",
+  pv_store: "Your favorites, notes, visited marks, ratings and theme choice are stored only in your own browser (local storage) on your device. The app has no server and no accounts, and the developer cannot see this data.",
+  pv_stats_h: "Visitor statistics",
+  pv_stats_html: 'To see how many people use the map, visits are counted with <a href="https://www.goatcounter.com" rel="noopener">GoatCounter</a>, a privacy-friendly statistics service. It uses no cookies, does not store your IP address and does not track you across websites. Only anonymous totals are kept: which page was opened, the referring website, browser, operating system, screen size and country (the country is looked up from your IP address, which is then discarded). Your favorites, notes, searches and ratings are never sent. See <a href="https://www.goatcounter.com/help/privacy" rel="noopener">GoatCounter\'s privacy policy</a>.',
   pv_drive_h: "Optional Google Drive backup",
   pv_drive_html: "If the Google Drive backup feature is enabled and you choose to use it, the app asks you to sign in with Google and grants access to one thing only: a private, hidden app-data folder in your own Google Drive (scope <code>drive.appdata</code>). The app cannot see, read or change any of your other Drive files.",
   pv_drive_list_html: `<li><strong>What is uploaded:</strong> one file, <code>dae2026-backup.json</code>, containing your favorites, notes, visited marks and ratings, only when you press "Back up to Google Drive".</li>
@@ -43,9 +45,11 @@ Object.assign(I18N.nl, {
 
   pv_title: "Privacybeleid – DAE 2026 Plattegrond",
   pv_h1: "Privacybeleid",
-  pv_intro_html: "<strong>DAE 2026 Plattegrond</strong> is een onofficiële, gratis plattegrond voor het Dutch Audio Event 2026. De app is niet verbonden aan de organisatie van het evenement. Laatst bijgewerkt: 26 september 2026.",
+  pv_intro_html: "<strong>DAE 2026 Plattegrond</strong> is een onofficiële, gratis plattegrond voor het Dutch Audio Event 2026. De app is niet verbonden aan de organisatie van het evenement. Laatst bijgewerkt: 29 september 2026.",
   pv_store_h: "Wat de app opslaat",
-  pv_store: "Je favorieten, notities, bezocht-markeringen, beoordelingen en themakeuze worden alleen in je eigen browser (local storage) op je apparaat opgeslagen. De app heeft geen server, geen accounts en geen analytics, en de ontwikkelaar kan deze gegevens niet inzien.",
+  pv_store: "Je favorieten, notities, bezocht-markeringen, beoordelingen en themakeuze worden alleen in je eigen browser (local storage) op je apparaat opgeslagen. De app heeft geen server en geen accounts, en de ontwikkelaar kan deze gegevens niet inzien.",
+  pv_stats_h: "Bezoekersstatistieken",
+  pv_stats_html: 'Om te zien hoeveel mensen de plattegrond gebruiken, worden bezoeken geteld met <a href="https://www.goatcounter.com" rel="noopener">GoatCounter</a>, een privacyvriendelijke statistiekendienst. Die gebruikt geen cookies, slaat je IP-adres niet op en volgt je niet over websites heen. Alleen anonieme totalen worden bewaard: welke pagina is geopend, de verwijzende website, browser, besturingssysteem, schermgrootte en land (het land wordt afgeleid uit je IP-adres, dat daarna wordt weggegooid). Je favorieten, notities, zoekopdrachten en beoordelingen worden nooit verstuurd. Zie het <a href="https://www.goatcounter.com/help/privacy" rel="noopener">privacybeleid van GoatCounter</a>.',
   pv_drive_h: "Optionele Google Drive-backup",
   pv_drive_html: "Als de Google Drive-backup beschikbaar is en je ervoor kiest die te gebruiken, vraagt de app je in te loggen met Google en krijgt de app toegang tot slechts één ding: een privé, verborgen app-gegevensmap in je eigen Google Drive (scope <code>drive.appdata</code>). De app kan je andere Drive-bestanden niet zien, lezen of wijzigen.",
   pv_drive_list_html: `<li><strong>Wat er wordt geüpload:</strong> één bestand, <code>dae2026-backup.json</code>, met je favorieten, notities, bezocht-markeringen en beoordelingen, en alleen wanneer je op "Backuppen naar Google Drive" drukt.</li>
