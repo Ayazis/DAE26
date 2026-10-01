@@ -63,6 +63,7 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .sw,.zones button.sw{font:inherit;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .sw::before{content:"";flex:none;width:30px;height:18px;border-radius:999px;background:radial-gradient(circle,#fff 6.5px,transparent 7.5px) left 2px center/18px 18px no-repeat var(--muted);transition:background-color .15s,background-position .15s}
 .sw[aria-checked="true"]::before{background-position:right 2px center;background-color:var(--green)}
+.sw[hidden]{display:none}
 .tog{font:inherit;font-weight:600;font-size:13px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:8px 10px;cursor:pointer}
 .tog[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .hits .count{color:var(--muted);align-self:center}
