@@ -29,8 +29,9 @@ ZONES.forEach(z=>z.rooms.forEach(([r,exs])=>exs.forEach(e=>(WHERE[e] ||= []).pus
 
 // HiFi.nl previews per room (hifi.js). A paragraph shared by several exhibitors is shown once, under the first of them.
 // English mode shows our translation (x.en) when there is one, otherwise HiFi.nl's Dutch text; search covers both.
+// hifi.js is big and only feeds previews and search, so it loads after the map is drawn (see the end of this file);
+// until then PV is empty and rooms simply have no preview.
 const PV = {};
-HIFI.forEach((x,i)=>x.rooms.forEach(r=>(PV[r] ||= []).push({...x,i})));
 
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hl = (t,q) => { if(!q) return esc(t); const i=t.toLowerCase().indexOf(q); return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); };
@@ -59,7 +60,8 @@ const box = document.getElementById("mapbox");
 const L = {};
 ["orig","foot","areas","corr","rooms","icons","labels"].forEach(k=>L[k]=el("g",{class:"l-"+k},svg));
 
-const orig = el("image",{href:"plan.jpg",x:0,y:0,width:W,height:H,preserveAspectRatio:"none"},L.orig);
+// The original JPG (700+ KB) is only needed when "High res" is off, so its href is set the first time it's shown.
+const orig = el("image",{x:0,y:0,width:W,height:H,preserveAspectRatio:"none"},L.orig);
 PLAN.footprint.forEach(([x,y,w,h])=>rect(x,y,w,h,"foot",L.foot));
 PLAN.areas.forEach(([x,y,w,h,k,label])=>{
   rect(x,y,w,h,"area a-"+k,L.areas);
@@ -345,7 +347,7 @@ document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElemen
 document.addEventListener("keydown",e=>{ if(e.key!=="Escape" || !box.classList.contains("full")) return; if(!favPanel.hidden) setFavPanel(false); else setFull(false); });
 /* High res = the redrawn map (default). Off = the original plan JPG, rooms stay tappable on top of it. */
 const hiBtn=document.getElementById("hires");
-function setHi(on){ svg.classList.toggle("show-orig",!on); svg.classList.toggle("no-vec",!on); hiBtn.setAttribute("aria-checked",on); store.set("hd",on); }
+function setHi(on){ if(!on && !orig.hasAttribute("href")) orig.setAttribute("href","plan.jpg"); svg.classList.toggle("show-orig",!on); svg.classList.toggle("no-vec",!on); hiBtn.setAttribute("aria-checked",on); store.set("hd",on); }
 hiBtn.addEventListener("click",()=>setHi(svg.classList.contains("show-orig")));
 
 
@@ -647,6 +649,18 @@ drawVB();
 refresh();
 importSharedFavs();
 addEventListener("hashchange", importSharedFavs); // a shared link opened while the app is already open
+
+// HiFi.nl previews: fetched once the map is on screen, then indexed per room; search and an open tooltip are redrawn.
+function loadHifi(){
+  const sc=document.createElement("script"); sc.src="hifi.js";
+  sc.onload=()=>{
+    HIFI.forEach((x,i)=>x.rooms.forEach(r=>(PV[r] ||= []).push({...x,i})));
+    refresh();
+    if(sel && !tip.hidden) select(sel);
+  };
+  document.head.appendChild(sc);
+}
+requestAnimationFrame(()=>setTimeout(loadHifi,0));
 
 // Optional cloud backup: loaded only when the flag is on and a client ID is set. Everything above works without it.
 if(FEATURES.cloudBackup && GDRIVE_CLIENT_ID){

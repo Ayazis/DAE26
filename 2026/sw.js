@@ -1,11 +1,12 @@
 // Offline support: precache the app shell, then code (html/css/js) is network-first so updates arrive on the next load and never mix versions; images and fonts are cache-first.
 // Named per scope: PR previews share the live site's origin and must not delete each other's caches.
-const CACHE = "dae26-v22@" + self.registration.scope;
-const SHELL = ["./", "index.html", "styles.css", "app.js", "analytics.js", "data.js", "hifi.js", "plan.js", "plan.jpg",
+const CACHE = "dae26-v23@" + self.registration.scope;
+const SHELL = ["./", "index.html", "styles.css", "app.js", "analytics.js", "data.js", "hifi.js", "plan.js",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // The 700+ KB plan image is cached after the shell, so it never delays installing or competes with the first load.
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL).then(() => self.skipWaiting()).then(() => c.add("plan.jpg").catch(() => {}))));
 });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys()
