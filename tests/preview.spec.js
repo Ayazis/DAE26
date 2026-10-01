@@ -23,13 +23,18 @@ test.describe("HiFi.nl previews", () => {
     expect(page.errors).toEqual([]);
   });
 
-  test("the source line links to HiFi.nl, collapsed or not", async ({ page }) => {
+  test("the source line shows only when the paragraph is expanded, and links to HiFi.nl", async ({ page }) => {
     await open(page);
     await openRoom(page, "36");
     const src = page.locator("#tip .pv .src");
+    await expect(src).toBeHidden();
+    await page.click("#tip .pv .more");
+    await expect(src).toBeVisible();
     await expect(src).toHaveText("Source: HiFi.nl (translated from Dutch)");
     await expect(src.locator("a")).toHaveText("HiFi.nl");
     await expect(src.locator("a")).toHaveAttribute("href", /get-your-tickets$/);
+    await page.click("#tip .pv .more");
+    await expect(src).toBeHidden();
   });
 
   test("English shows the translation, Dutch the original", async ({ page }) => {

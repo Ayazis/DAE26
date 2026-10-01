@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>DAE 2026 Interactive Floorplan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Fonts load without blocking the first paint (system-ui shows until they arrive). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="styles.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -85,12 +88,11 @@
   </div>
 </div>
 
-<script src="i18n.js"></script>
-<script src="data.js"></script>
-<script src="hifi.js"></script>
-<script src="plan.js"></script>
-<script src="app.js"></script>
-<script src="analytics.js"></script>
-<script>if("serviceWorker" in navigator && location.protocol!=="file:") addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));</script>
+<!-- data.js (exhibitors) and then hifi.js (HiFi.nl previews) are not listed here: app.js loads them once the map is drawn, retrying if data.js fails. -->
+<script src="i18n.js" defer></script>
+<script src="plan.js" defer></script>
+<script src="app.js" defer></script>
+<script src="analytics.js" defer></script>
+<script>if("serviceWorker" in navigator && location.protocol!=="file:") addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(()=>navigator.serviceWorker.ready).then(r=>r.active&&r.active.postMessage("cache-plan")).catch(()=>{}));</script>
 </body>
 </html>
