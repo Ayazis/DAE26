@@ -89,7 +89,7 @@ sourcedata/
 | `data.js` | Source |
 |-----------|--------|
 | `EX` (exhibitor → brands) | `exhibitors.json` → `brands[].name` |
-| `ZONES` (zone → rooms → exhibitors) | `exhibitors.json` → `locations` (cross-checked with the HiFi.nl `where` lines) |
+| `OCCUPANTS` (room → exhibitors) | `exhibitors.json` → `locations` (cross-checked with the HiFi.nl `where` lines) |
 | `URL_EX` (exhibitor → page) | `exhibitors.json` → `url` |
 | `BOX` (room hotspots) | Traced by hand from `plan.jpg` (source 5) |
 | (not used yet) product categories | `brands.json` → `categories`, for the Phase 3 category filter |

@@ -1,6 +1,6 @@
 // Offline support: precache the app shell, then code (html/css/js) is network-first so updates arrive on the next load and never mix versions; images and fonts are cache-first.
 // Named per scope: PR previews share the live site's origin and must not delete each other's caches.
-const CACHE = "dae26-v23@" + self.registration.scope;
+const CACHE = "dae26-v24@" + self.registration.scope;
 const SHELL = ["./", "index.html", "styles.css", "app.js", "analytics.js", "data.js", "hifi.js", "plan.js",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable.png", "apple-touch-icon.png"];
 
