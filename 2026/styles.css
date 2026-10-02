@@ -2,21 +2,21 @@
   --bg:#F4F5F6; --surface:#FFFFFF; --ink:#1A1D21; --muted:#5E6670; --line:#DDE1E5; --hl:#FFE88A;
   --red:#C8392B; --blue:#2A66B8; --green:#6E9A12; --yellow:#D39A00; --chip:#E7EAED;
   --pick:#D6247A; --mapbg:#EEF1F3;
-  --floor:#FFFFFF; --wall:#8A94A0; --room:#FFFFFF; --patio:#E3EDD8; --grey:#C9CED4; --darkarea:#5E7270; --hall:#F0D9D3; --hitfill:#FFE45C; --iconbg:#1E3557; --star:#E0A100; --visited:#E4E8EC;
+  --floor:#FFFFFF; --wall:#8A94A0; --room:#FFFFFF; --area:#DDE1E5; --hall:#F0D9D3; --hitfill:#FFE45C; --iconbg:#1E3557; --star:#E0A100; --visited:#E4E8EC;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
     --bg:#13161A; --surface:#1B1F24; --ink:#E9ECEF; --muted:#9AA3AD; --line:#2C323A; --hl:#6B5A10;
     --red:#E0604F; --blue:#5C92DE; --green:#A5C93A; --yellow:#E8B82E; --chip:#262B32; --pick:#FF4FA3; --mapbg:#101316;
-    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933; --visited:#1A1E23;
+    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --area:#2F353C; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933; --visited:#1A1E23;
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#13161A; --surface:#1B1F24; --ink:#E9ECEF; --muted:#9AA3AD; --line:#2C323A; --hl:#6B5A10;
   --red:#E0604F; --blue:#5C92DE; --green:#A5C93A; --yellow:#E8B82E; --chip:#262B32; --pick:#FF4FA3; --mapbg:#101316;
-    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --patio:#1F2B1E; --grey:#343A42; --darkarea:#2E3B3A; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933; --visited:#1A1E23;
+    --floor:#1E2329; --wall:#4A535E; --room:#262C33; --area:#2F353C; --hall:#3A2C29; --hitfill:#7A6512; --iconbg:#3D5A85; --star:#FFC933; --visited:#1A1E23;
 }
 body{background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,sans-serif;font-size:15px;line-height:1.45;padding-inline:16px;padding-block:0 32px}
 .wrap{max-width:1100px;margin:0 auto}
@@ -83,15 +83,15 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 #svg.no-vec .l-orig{opacity:1}
 .foot{fill:var(--floor);stroke:var(--wall);stroke-width:2}
 .area{stroke:var(--wall);stroke-width:1}
-.a-patio{fill:var(--patio)} .a-grey{fill:var(--grey)} .a-dark{fill:var(--darkarea)} .a-hall{fill:var(--hall)} .a-lobby{fill:var(--floor)}
+.a-patio,.a-grey,.a-dark{fill:var(--area)} .a-hall{fill:var(--hall)} .a-lobby{fill:var(--floor)}
 .stem{stroke:var(--wall);stroke-width:10}
 .alabel{fill:var(--muted);font-size:13px;text-anchor:middle;dominant-baseline:central;font-style:italic;pointer-events:none}
 .corr{stroke:none}
 .z-red{--zc:var(--red)} .z-blue{--zc:var(--blue)} .z-green{--zc:var(--green)} .z-yellow{--zc:var(--yellow)}
 .corr{fill:var(--zc)}
 .room .rbox{fill:var(--room);stroke:var(--wall);stroke-width:1.5;transition:fill .15s}
-.room.hall .rbox{fill:color-mix(in srgb,var(--zc,var(--grey)) 30%,var(--room))}
-.room.empty .rbox,.room.unused .rbox{fill:var(--grey)}
+.room.hall .rbox{fill:color-mix(in srgb,var(--zc,var(--area)) 30%,var(--room))}
+.room.empty .rbox,.room.unused .rbox{fill:var(--area)}
 .room[tabindex]{cursor:pointer;outline:none}
 .room[tabindex]:hover .rbox{fill:color-mix(in srgb,var(--zc) 22%,var(--room))}
 .room[tabindex]:focus-visible .rbox{stroke:var(--blue);stroke-width:4}
