@@ -85,7 +85,11 @@ const I18N = {
     drive_backup_source: "the Google Drive backup from {{when}}",
     drive_backed_up: "Backed up to Google Drive at {{time}}.",
     drive_no_backup: "No backup found in Google Drive yet.",
-    drive_error_msg: "Google Drive: {{msg}}."
+    drive_error_msg: "Google Drive: {{msg}}.",
+    bk_never: "Saved only in this browser, not backed up. Clearing site data or switching device loses it.",
+    bk_changed: "Changed since your last backup ({{when}}).",
+    bk_ok: "Backed up {{when}}.",
+    bk_action: "Back up now"
   },
   nl: {
     title: "DAE 2026 Interactieve plattegrond",
@@ -169,7 +173,11 @@ const I18N = {
     drive_backup_source: "de Google Drive-backup van {{when}}",
     drive_backed_up: "Gebackupt naar Google Drive om {{time}}.",
     drive_no_backup: "Nog geen backup gevonden in Google Drive.",
-    drive_error_msg: "Google Drive: {{msg}}."
+    drive_error_msg: "Google Drive: {{msg}}.",
+    bk_never: "Alleen in deze browser opgeslagen, geen backup. Bij wissen van sitegegevens of een ander apparaat ben je alles kwijt.",
+    bk_changed: "Gewijzigd sinds je laatste backup ({{when}}).",
+    bk_ok: "Gebackupt {{when}}.",
+    bk_action: "Nu backuppen"
   }
 };
 

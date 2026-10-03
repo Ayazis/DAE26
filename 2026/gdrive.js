@@ -51,7 +51,7 @@
       await drive(`${UPLOAD}?uploadType=multipart`,{method:"POST", headers:{"Content-Type":"multipart/related; boundary="+b},
         body:`--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({name:FILE,parents:["appDataFolder"]})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`});
     }
-    store.set("cloudSeen",true); store.set("cloudSync",Date.now());
+    store.set("cloudSeen",true); store.set("cloudSync",Date.now()); markBackedUp();
     msg(t("drive_backed_up",{time:new Date().toLocaleTimeString([], {timeStyle:"short"})}));
   }
   async function restore(){

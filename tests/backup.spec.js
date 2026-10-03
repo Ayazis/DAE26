@@ -133,3 +133,22 @@ test.describe("restore", () => {
     expect(await saved(page)).toEqual({ 12: { fav: true } });
   });
 });
+
+test.describe("backup status", () => {
+  test("is hidden until there is data, warns while unbacked, and flips after a backup", async ({ page }) => {
+    await open(page);
+    await expect(page.locator("#bkstatus")).toBeHidden();
+
+    await openRoom(page, "3");
+    await page.locator("#tip .favb").click();
+    await expect(page.locator("#bkstatus")).toContainText("not backed up");
+    await expect(page.locator("#bkstatus")).toHaveClass(/warn/);
+
+    await download(page);
+    await expect(page.locator("#bkstatus")).toContainText("Backed up");
+    await expect(page.locator("#bkstatus")).not.toHaveClass(/warn/);
+
+    await page.locator("#tip .note").fill("changed");
+    await expect(page.locator("#bkstatus")).toContainText("Changed since your last backup");
+  });
+});
