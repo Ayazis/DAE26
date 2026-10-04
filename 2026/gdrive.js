@@ -81,7 +81,11 @@
     }catch(e){ stopLive(); msg(t("drive_error_msg",{msg:e.message})); }
     finally{ busy=false; if(again){ again=false; schedule(); } }
   }
-  function schedule(){ if(!liveUntil()) return; clearTimeout(timer); timer=setTimeout(push,3000); }
+  // Every change restarts the timer, so nothing is sent mid-burst. While a note is being typed the wait is longer, so
+  // sync only happens once the typing has paused; the pending timer is also pushed back if the box is still focused.
+  const typing = () => document.activeElement && document.activeElement.classList.contains("note");
+  const QUIET=3000, QUIET_TYPING=10000;
+  function schedule(){ if(!liveUntil()) return; clearTimeout(timer); timer=setTimeout(push, typing() ? QUIET_TYPING : QUIET); }
   async function restore(){
     await getToken();
     const file=await findFile();

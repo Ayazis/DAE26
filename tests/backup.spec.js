@@ -198,3 +198,31 @@ test.describe("Google Drive auto-sync", () => {
     expect(g.uploads).toEqual([]);
   });
 });
+
+test("Drive auto-sync waits until a note has stopped changing", async ({ page }) => {
+  test.setTimeout(40000);
+  const uploads = [];
+  await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
+    contentType: "text/javascript",
+    body: `window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){this.callback({access_token:"t",expires_in:3600})}})}}};`,
+  }));
+  await page.route(/googleapis\.com\/(upload\/)?drive\/v3\/files/, r => {
+    const req = r.request();
+    if (req.method() === "GET") return r.fulfill({ json: { files: [] } });
+    uploads.push(req.postData());
+    return r.fulfill({ json: { modifiedTime: new Date().toISOString() } });
+  });
+  await open(page, { rooms: { 3: { fav: true } } });
+  await page.locator("#backup").selectOption("drive");
+  await expect.poll(() => uploads.length).toBe(1);
+
+  await openRoom(page, "3");
+  const note = page.locator("#tip .note");
+  await note.click();
+  await note.pressSequentially("hello", { delay: 50 });
+  await page.waitForTimeout(5000); // longer than the normal 3 s wait
+  expect(uploads.length).toBe(1);
+  await note.pressSequentially(" world", { delay: 50 });
+  await expect.poll(() => uploads.length, { timeout: 15000 }).toBe(2);
+  expect(uploads[1]).toContain("hello world");
+});
