@@ -225,4 +225,10 @@ test("Drive auto-sync waits until a note has stopped changing", async ({ page })
   await note.pressSequentially(" world", { delay: 50 });
   await expect.poll(() => uploads.length, { timeout: 15000 }).toBe(2);
   expect(uploads[1]).toContain("hello world");
+
+  // Clicking away doesn't wait out the pause.
+  await note.pressSequentially("!", { delay: 50 });
+  await page.locator("h1").click();
+  await expect.poll(() => uploads.length, { timeout: 3000 }).toBe(3);
+  expect(uploads[2]).toContain("hello world!");
 });
