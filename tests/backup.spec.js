@@ -133,3 +133,190 @@ test.describe("restore", () => {
     expect(await saved(page)).toEqual({ 12: { fav: true } });
   });
 });
+
+test.describe("backup status", () => {
+  test("is hidden until there is data, warns while unbacked, and flips after a backup", async ({ page }) => {
+    await open(page);
+    await expect(page.locator("#bkstatus")).toBeHidden();
+
+    await openRoom(page, "3");
+    await page.locator("#tip .favb").click();
+    await expect(page.locator("#bkstatus")).toContainText("not backed up");
+    await expect(page.locator("#bkstatus")).toHaveClass(/warn/);
+
+    await download(page);
+    await expect(page.locator("#bkstatus")).toContainText("Backed up");
+    await expect(page.locator("#bkstatus")).not.toHaveClass(/warn/);
+
+    await page.locator("#tip .note").fill("changed");
+    await expect(page.locator("#bkstatus")).toContainText("Changed since your last backup");
+  });
+});
+
+test.describe("Google Drive auto-sync", () => {
+  // A fake Google sign-in and Drive: one stored file, and a log of the uploads. otherDevice() writes a newer backup.
+  async function fakeGoogle(page) {
+    const uploads = [];
+    let stored = null;
+    await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
+      contentType: "text/javascript",
+      body: `window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){this.callback({access_token:"t",expires_in:3600})}})}}};`,
+    }));
+    await page.route(/googleapis\.com\/(upload\/)?drive\/v3\/files/, async r => {
+      const req = r.request();
+      if (req.method() === "GET") return r.fulfill({ json: { files: stored ? [{ id: "f1", modifiedTime: stored.at }] : [] } });
+      const body = req.postData();
+      stored = { at: new Date().toISOString(), body };
+      uploads.push(req.method());
+      return r.fulfill({ json: { id: "f1", modifiedTime: stored.at } });
+    });
+    return { uploads, stored: () => stored,
+      otherDevice: body => { stored = { at: new Date(Date.now() + 5000).toISOString(), body }; } };
+  }
+  const driveBackup = page => page.locator("#backup").selectOption("drive");
+
+  test("after a Drive backup, later changes upload on their own", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect(page.locator("#bkstatus")).toContainText("Changes sync to Google Drive");
+    expect(g.uploads).toEqual(["POST"]);
+
+    await openRoom(page, "7");
+    await page.locator("#tip .favb").click();
+    await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
+    expect(g.stored().body).toContain('"7"');
+    await expect(page.locator("#bkstatus")).toContainText("Backed up");
+    await expect(page.locator("#bkstatus")).not.toHaveClass(/warn/);
+  });
+
+  test("changes are not uploaded before a Drive backup has been made", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await open(page);
+    await openRoom(page, "3");
+    await page.locator("#tip .favb").click();
+    await page.waitForTimeout(2000);
+    expect(g.uploads).toEqual([]);
+  });
+
+  test("saving a local file while a change waits doesn't keep it from Drive", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST"]);
+    await openRoom(page, "7");
+    await page.locator("#tip .favb").click();
+    await download(page); // inside the quiet second
+    await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
+    expect(g.stored().body).toContain('"7"');
+  });
+
+  test("restoring a local file while auto-sync is on sends it to Drive", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST"]);
+    answerDialog(page, true);
+    await restore(page, { app: "daem-2026", version: 1, rooms: { 9: { note: "from file" } } });
+    await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
+    expect(g.stored().body).toContain("from file");
+  });
+
+  test("leaving the page doesn't overwrite another device's newer backup", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await page.clock.install();
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST"]);
+    await page.clock.fastForward("00:31"); // this page last looked at Drive over 30 s ago
+    g.otherDevice('{"from":"other device"}');
+    await openRoom(page, "7");
+    await page.locator("#tip .favb").click();
+    await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+    await expect(page.locator("#msg")).toHaveText(/Auto-sync stopped/);
+    expect(g.uploads).toEqual(["POST"]);
+    expect(g.stored().body).toContain("other device");
+  });
+
+  test("leaving the page after a quiet spell checks Drive, then sends the change", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await page.clock.install();
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST"]);
+    await page.clock.fastForward("00:31");
+    await openRoom(page, "7");
+    await page.locator("#tip .favb").click();
+    await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+    await expect.poll(() => g.uploads).toEqual(["POST", "PATCH"]);
+    expect(g.stored().body).toContain('"7"');
+  });
+
+  test("two quick Drive backups make one file", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    // Slow lookups, so the second backup starts before the first has created the file.
+    await page.route(/googleapis\.com\/drive\/v3\/files\?/, async r => { await new Promise(ok => setTimeout(ok, 300)); await r.fallback(); });
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST", "PATCH"]);
+  });
+});
+
+test("Drive auto-sync waits until a note has stopped changing", async ({ page }) => {
+  const uploads = [];
+  await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
+    contentType: "text/javascript",
+    body: `window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){this.callback({access_token:"t",expires_in:3600})}})}}};`,
+  }));
+  await page.route(/googleapis\.com\/(upload\/)?drive\/v3\/files/, r => {
+    const req = r.request();
+    if (req.method() === "GET") return r.fulfill({ json: { files: [] } });
+    uploads.push(req.postData());
+    return r.fulfill({ json: { id: "f1", modifiedTime: new Date().toISOString() } });
+  });
+  await open(page, { rooms: { 3: { fav: true } } });
+  await page.locator("#backup").selectOption("drive");
+  await expect.poll(() => uploads.length).toBe(1);
+
+  await openRoom(page, "3");
+  const note = page.locator("#tip .note");
+  await note.click();
+  // Keeps typing for ~2.5 s with short gaps: nothing is sent until the typing pauses.
+  for (const ch of "hello wor") { await note.pressSequentially(ch); await page.waitForTimeout(280); }
+  expect(uploads.length).toBe(1);
+  await expect.poll(() => uploads.length, { timeout: 3000 }).toBe(2);
+  expect(uploads[1]).toContain("hello wor");
+
+  // Clicking away doesn't wait out the second.
+  await note.click();
+  await note.pressSequentially("ld");
+  await page.locator("h1").click();
+  await expect.poll(() => uploads.length, { timeout: 900 }).toBe(3);
+  expect(uploads[2]).toContain("hello world");
+});
+
+test("Drive auto-sync sends a pending change when the page is hidden or closing", async ({ page }) => {
+  const seen = [];
+  await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
+    contentType: "text/javascript",
+    body: `window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){this.callback({access_token:"t",expires_in:3600})}})}}};`,
+  }));
+  await page.route(/googleapis\.com\/(upload\/)?drive\/v3\/files/, r => {
+    const req = r.request();
+    seen.push(req.method() + " " + new URL(req.url()).pathname);
+    if (req.method() === "GET") return r.fulfill({ json: { files: [] } });
+    return r.fulfill({ json: { id: "f1", modifiedTime: new Date().toISOString() } });
+  });
+  await open(page, { rooms: { 3: { fav: true } } });
+  await page.locator("#backup").selectOption("drive");
+  await expect.poll(() => seen.length).toBe(2); // GET (find), POST (create)
+
+  await openRoom(page, "7");
+  await page.locator("#tip .favb").click();
+  seen.length = 0;
+  await page.evaluate(() => addEventListener("pagehide", () => {}) || window.dispatchEvent(new Event("pagehide")));
+  // One request, straight to the remembered file, without the extra lookup.
+  await expect.poll(() => seen).toEqual(["PATCH /upload/drive/v3/files/f1"]);
+  await expect(page.locator("#bkstatus")).not.toHaveClass(/warn/);
+});

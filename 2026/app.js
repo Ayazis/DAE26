@@ -19,6 +19,7 @@ function setRoom(r, patch){
   if(Object.keys(next).length) all[r]=next; else delete all[r];
   store.set("rooms", all);
   paintRoom(r); renderFavs();
+  if(window.cloudSyncSoon) cloudSyncSoon();
 }
 
 // Geometry (plan.js: ZONES, BOX) is enough to draw the map; who is in which room (data.js) arrives later and is
@@ -547,6 +548,7 @@ function renderFavs(){
     return `<li style="--zc:${z.color}" class="${st.visited?"visited":""}"><button type="button" data-go="${esc(r)}"><span class="fr">${esc(rname(r))}${extra?`<span class="fx">${extra}</span>`:""}</span>
       ${st.note?`<span class="fn">${esc(st.note)}</span>`:""}
       <span class="fb">${esc(brands.slice(0,6).join(", "))}${brands.length>6?` +${brands.length-6}`:""}</span></button></li>`; }).join("");
+  renderBackupStatus();
   list.innerHTML = favPanelList.innerHTML = html;
   list.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ select(b.dataset.go,true); box.scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"}); }));
   favPanelList.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ setFavPanel(false); select(b.dataset.go,true); }));
@@ -620,8 +622,28 @@ function restoreRooms(rooms, source){
   const n=Object.keys(rooms).length;
   if(!confirm(t("restore_confirm",{n, noun:noun("room",n), source}))) return false;
   store.set("rooms", rooms);
-  Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); msg(t("backup_restored"));
+  Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); markBackedUp(); if(window.cloudSyncSoon) cloudSyncSoon(); msg(t("backup_restored"));
   return true;
+}
+// Favorites live only in this browser's storage, so say so until the data has been backed up (to a file or Drive).
+// The backup time and a fingerprint of what was backed up are kept, so later edits flip the notice back to a warning.
+const canon = v => v && typeof v==="object" ? Array.isArray(v) ? v.map(canon) : Object.fromEntries(Object.keys(v).sort().map(k=>[k,canon(v[k])])) : v;
+const roomsSig = () => JSON.stringify(canon(store.get("rooms")||{}));
+function markBackedUp(sig=roomsSig()){ store.set("backupAt",Date.now()); store.set("backupSig",sig); renderBackupStatus(); }
+function renderBackupStatus(){
+  const el=document.getElementById("bkstatus"), at=store.get("backupAt");
+  if(!Object.keys(store.get("rooms")||{}).length){ el.textContent=""; el.className="bkstatus"; return; }
+  const when = at ? new Date(at).toLocaleString(LANG,{dateStyle:"medium",timeStyle:"short"}) : "";
+  const ok = at && store.get("backupSig")===roomsSig();
+  el.className = "bkstatus"+(ok?" ok":" warn");
+  el.textContent = ok ? t("bk_ok",{when}) : at ? t("bk_changed",{when}) : t("bk_never");
+  const until = window.cloudLiveUntil && cloudLiveUntil();
+  if(ok && until) el.textContent += " "+t("bk_live",{time:new Date(until).toLocaleTimeString(LANG,{timeStyle:"short"})});
+  if(!ok){
+    const b=document.createElement("button"); b.type="button"; b.className="linkbtn"; b.textContent=t("bk_action");
+    b.addEventListener("click",()=>{ backupSel.scrollIntoView({block:"center",behavior:reduceMotion()?"auto":"smooth"}); backupSel.focus(); });
+    el.append(" ",b);
+  }
 }
 const impjson = document.getElementById("impjson");
 const backupSel = document.getElementById("backup"), restoreSel = document.getElementById("restore");
@@ -631,7 +653,7 @@ if(!(FEATURES.cloudBackup && GDRIVE_CLIENT_ID)){
 }
 backupSel.addEventListener("change",()=>{
   const v=backupSel.value; backupSel.value="";
-  if(v==="local") download("dae2026-backup.json", JSON.stringify(backupPayload(),null,2), "application/json");
+  if(v==="local"){ download("dae2026-backup.json", JSON.stringify(backupPayload(),null,2), "application/json"); markBackedUp(); }
   else if(v==="drive"){ if(window.cloudBackup) window.cloudBackup(); else msg(t("drive_loading")); }
 });
 restoreSel.addEventListener("change",()=>{

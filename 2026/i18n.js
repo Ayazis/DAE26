@@ -5,7 +5,7 @@ const I18N = {
     title: "DAE 2026 Interactive Floorplan",
     h1: "Dutch Audio Event 2026 · Interactive Floorplan",
     dark_mode: "Dark mode",
-    sub_html: 'NOTE: This is an independent, unofficial fan map and is not affiliated with or endorsed by Dutch Audio Event. See the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.',
+    sub_html: 'Your favorites and notes are saved only in this browser, nowhere else. Use <strong>Backup</strong> under Share &amp; backup to keep them safe.',
     search_placeholder: "Find a brand, exhibitor, room or note…",
     search_label: "Search",
     fullscreen: "Fullscreen",
@@ -25,7 +25,7 @@ const I18N = {
     restore_drive: "Restore from Google Drive",
     feedbackh: "Feedback",
     feedback_html: 'Spotted a wrong room, a missing brand, or a bug? Share your thoughts with us at <a href="mailto:daemap26@outlook.com">daemap26@outlook.com</a>.',
-    footer_html: 'Room and brand data from <a href="https://dutchaudioevent.nl/merken" target="_blank" rel="noopener">dutchaudioevent.nl</a>, collected 26 September 2026. Previews of what each room demos come from <a href="https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets" target="_blank" rel="noopener">HiFi.nl</a>, used with permission. When an exhibitor uses several rooms, the site lists one set of brands for all of them. Check the site for late changes. Your favorites and notes are stored only in this browser. Works offline after the first visit. <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>',
+    footer_html: 'Room and brand data from <a href="https://dutchaudioevent.nl/merken" target="_blank" rel="noopener">dutchaudioevent.nl</a>, collected 26 September 2026. Previews of what each room demos come from <a href="https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets" target="_blank" rel="noopener">HiFi.nl</a>, used with permission. When an exhibitor uses several rooms, the site lists one set of brands for all of them. Check the site for late changes. Works offline after the first visit. NOTE: This is an independent, unofficial fan map and is not affiliated with or endorsed by Dutch Audio Event. <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>',
     lang_switch: "NL",
     lang_title: "Switch to Dutch",
 
@@ -85,13 +85,19 @@ const I18N = {
     drive_backup_source: "the Google Drive backup from {{when}}",
     drive_backed_up: "Backed up to Google Drive at {{time}}.",
     drive_no_backup: "No backup found in Google Drive yet.",
-    drive_error_msg: "Google Drive: {{msg}}."
+    drive_error_msg: "Google Drive: {{msg}}.",
+    bk_never: "Saved only in this browser, not backed up. Clearing site data or switching device loses it.",
+    bk_changed: "Changed since your last backup ({{when}}).",
+    bk_ok: "Backed up {{when}}.",
+    bk_action: "Back up now",
+    bk_live: "Changes sync to Google Drive until {{time}}.",
+    drive_sync_conflict: "Auto-sync stopped: Google Drive has a newer backup from another device. Restore it or back up again to choose."
   },
   nl: {
     title: "DAE 2026 Interactieve plattegrond",
     h1: "Dutch Audio Event 2026 · Interactieve plattegrond",
     dark_mode: "Donkere modus",
-    sub_html: 'LET OP: dit is een onafhankelijke, niet-officiële fanplattegrond en is niet gelieerd aan Dutch Audio Event. Zie de <a href="terms.html">Voorwaarden</a> en het <a href="privacy.html">Privacybeleid</a>.',
+    sub_html: 'Je favorieten en notities worden alleen in deze browser opgeslagen, nergens anders. Gebruik <strong>Backup</strong> onder Delen &amp; backup om ze veilig te bewaren.',
     search_placeholder: "Zoek een merk, exposant, ruimte of notitie…",
     search_label: "Zoeken",
     fullscreen: "Volledig scherm",
@@ -111,7 +117,7 @@ const I18N = {
     restore_drive: "Herstellen vanuit Google Drive",
     feedbackh: "Feedback",
     feedback_html: 'Een verkeerde ruimte, een ontbrekend merk of een bug gezien? Laat het ons weten via <a href="mailto:daemap26@outlook.com">daemap26@outlook.com</a>.',
-    footer_html: 'Ruimte- en merkgegevens van <a href="https://dutchaudioevent.nl/merken" target="_blank" rel="noopener">dutchaudioevent.nl</a>, verzameld op 26 september 2026. Voorbeschouwingen van wat er per ruimte te horen is komen van <a href="https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets" target="_blank" rel="noopener">HiFi.nl</a>, gebruikt met toestemming. Als een exposant meerdere ruimtes gebruikt, vermeldt de site één set merken voor alle ruimtes samen. Kijk op de site voor eventuele late wijzigingen. Je favorieten en notities worden alleen in deze browser opgeslagen. Werkt offline na het eerste bezoek. <a href="privacy.html">Privacy</a> · <a href="terms.html">Voorwaarden</a>',
+    footer_html: 'Ruimte- en merkgegevens van <a href="https://dutchaudioevent.nl/merken" target="_blank" rel="noopener">dutchaudioevent.nl</a>, verzameld op 26 september 2026. Voorbeschouwingen van wat er per ruimte te horen is komen van <a href="https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets" target="_blank" rel="noopener">HiFi.nl</a>, gebruikt met toestemming. Als een exposant meerdere ruimtes gebruikt, vermeldt de site één set merken voor alle ruimtes samen. Kijk op de site voor eventuele late wijzigingen. Werkt offline na het eerste bezoek. LET OP: dit is een onafhankelijke, niet-officiële fanplattegrond en is niet gelieerd aan of goedgekeurd door Dutch Audio Event. <a href="privacy.html">Privacy</a> · <a href="terms.html">Voorwaarden</a>',
     lang_switch: "EN",
     lang_title: "Switch to English",
 
@@ -169,7 +175,13 @@ const I18N = {
     drive_backup_source: "de Google Drive-backup van {{when}}",
     drive_backed_up: "Gebackupt naar Google Drive om {{time}}.",
     drive_no_backup: "Nog geen backup gevonden in Google Drive.",
-    drive_error_msg: "Google Drive: {{msg}}."
+    drive_error_msg: "Google Drive: {{msg}}.",
+    bk_never: "Alleen in deze browser opgeslagen, geen backup. Bij wissen van sitegegevens of een ander apparaat ben je alles kwijt.",
+    bk_changed: "Gewijzigd sinds je laatste backup ({{when}}).",
+    bk_ok: "Gebackupt {{when}}.",
+    bk_action: "Nu backuppen",
+    bk_live: "Wijzigingen worden gesynchroniseerd met Google Drive tot {{time}}.",
+    drive_sync_conflict: "Automatisch synchroniseren gestopt: Google Drive heeft een nieuwere backup van een ander apparaat. Herstel die of maak opnieuw een backup om te kiezen."
   }
 };
 
