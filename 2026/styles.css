@@ -165,6 +165,10 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .zones .flt{background:var(--surface)}
 .progress{color:var(--muted);font-size:13px;margin:-2px 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .progress:empty{display:none}
+.bkstatus{font-size:13px;margin:-2px 0 10px;color:var(--muted)}
+.bkstatus:empty{display:none}
+.bkstatus.warn{color:var(--ink);background:var(--chip);border-left:3px solid var(--star);padding:6px 8px;border-radius:4px}
+.linkbtn{font:inherit;color:inherit;background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;font-weight:600}
 .pbar{width:120px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--green) var(--p),var(--chip) 0)}
 .favs li.visited button{opacity:.65}
 .favs .fx{color:var(--star);font-weight:600}
