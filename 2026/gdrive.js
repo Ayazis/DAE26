@@ -81,12 +81,11 @@
     }catch(e){ stopLive(); msg(t("drive_error_msg",{msg:e.message})); }
     finally{ busy=false; if(again){ again=false; schedule(); } }
   }
-  // Every change restarts the timer, so nothing is sent mid-burst. While a note is being typed the wait is longer, so
-  // sync only happens once the typing has paused or the box loses focus.
-  const typing = () => document.activeElement && document.activeElement.classList.contains("note");
-  const QUIET=3000, QUIET_TYPING=10000;
-  function schedule(){ if(!liveUntil()) return; clearTimeout(timer); timer=setTimeout(push, typing() ? QUIET_TYPING : QUIET); }
-  // Clicking out of a note (or leaving the tab) counts as finished typing: sync right away instead of waiting out the pause.
+  // Every change restarts a 1 s timer, so nothing is sent mid-burst (typing a note keeps pushing it back) and sync happens
+  // once the changes pause.
+  const QUIET=1000;
+  function schedule(){ if(!liveUntil()) return; clearTimeout(timer); timer=setTimeout(push, QUIET); }
+  // Clicking out of a note (or leaving the tab) counts as finished typing: sync right away instead of waiting out the second.
   const flush = () => { if(!liveUntil()) return; clearTimeout(timer); timer=setTimeout(push, 300); };
   document.addEventListener("focusout", e=>{ if(e.target.classList && e.target.classList.contains("note")) flush(); });
   // Closing the page or switching away mid-wait: send the pending change now. The usual find-then-upload takes two requests and

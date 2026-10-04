@@ -183,7 +183,7 @@ test.describe("Google Drive auto-sync", () => {
 
     await openRoom(page, "7");
     await page.locator("#tip .favb").click();
-    await expect.poll(() => g.uploads, { timeout: 8000 }).toEqual(["POST", "PATCH"]);
+    await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
     expect(g.stored().body).toContain('"7"');
     await expect(page.locator("#bkstatus")).toContainText("Backed up");
     await expect(page.locator("#bkstatus")).not.toHaveClass(/warn/);
@@ -194,13 +194,12 @@ test.describe("Google Drive auto-sync", () => {
     await open(page);
     await openRoom(page, "3");
     await page.locator("#tip .favb").click();
-    await page.waitForTimeout(4500);
+    await page.waitForTimeout(2000);
     expect(g.uploads).toEqual([]);
   });
 });
 
 test("Drive auto-sync waits until a note has stopped changing", async ({ page }) => {
-  test.setTimeout(40000);
   const uploads = [];
   await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
     contentType: "text/javascript",
@@ -210,7 +209,7 @@ test("Drive auto-sync waits until a note has stopped changing", async ({ page })
     const req = r.request();
     if (req.method() === "GET") return r.fulfill({ json: { files: [] } });
     uploads.push(req.postData());
-    return r.fulfill({ json: { modifiedTime: new Date().toISOString() } });
+    return r.fulfill({ json: { id: "f1", modifiedTime: new Date().toISOString() } });
   });
   await open(page, { rooms: { 3: { fav: true } } });
   await page.locator("#backup").selectOption("drive");
@@ -219,18 +218,18 @@ test("Drive auto-sync waits until a note has stopped changing", async ({ page })
   await openRoom(page, "3");
   const note = page.locator("#tip .note");
   await note.click();
-  await note.pressSequentially("hello", { delay: 50 });
-  await page.waitForTimeout(5000); // longer than the normal 3 s wait
+  // Keeps typing for ~2.5 s with short gaps: nothing is sent until the typing pauses.
+  for (const ch of "hello wor") { await note.pressSequentially(ch); await page.waitForTimeout(280); }
   expect(uploads.length).toBe(1);
-  await note.pressSequentially(" world", { delay: 50 });
-  await expect.poll(() => uploads.length, { timeout: 15000 }).toBe(2);
-  expect(uploads[1]).toContain("hello world");
+  await expect.poll(() => uploads.length, { timeout: 3000 }).toBe(2);
+  expect(uploads[1]).toContain("hello wor");
 
-  // Clicking away doesn't wait out the pause.
-  await note.pressSequentially("!", { delay: 50 });
+  // Clicking away doesn't wait out the second.
+  await note.click();
+  await note.pressSequentially("ld");
   await page.locator("h1").click();
-  await expect.poll(() => uploads.length, { timeout: 3000 }).toBe(3);
-  expect(uploads[2]).toContain("hello world!");
+  await expect.poll(() => uploads.length, { timeout: 900 }).toBe(3);
+  expect(uploads[2]).toContain("hello world");
 });
 
 test("Drive auto-sync sends a pending change when the page is hidden or closing", async ({ page }) => {
