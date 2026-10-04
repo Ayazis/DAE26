@@ -19,6 +19,7 @@ function setRoom(r, patch){
   if(Object.keys(next).length) all[r]=next; else delete all[r];
   store.set("rooms", all);
   paintRoom(r); renderFavs();
+  if(window.cloudSyncSoon) cloudSyncSoon();
 }
 
 // Geometry (plan.js: ZONES, BOX) is enough to draw the map; who is in which room (data.js) arrives later and is
@@ -621,14 +622,14 @@ function restoreRooms(rooms, source){
   const n=Object.keys(rooms).length;
   if(!confirm(t("restore_confirm",{n, noun:noun("room",n), source}))) return false;
   store.set("rooms", rooms);
-  Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); markBackedUp(); msg(t("backup_restored"));
+  Object.keys(spots).forEach(paintRoom); renderFavs(); refresh(); markBackedUp(); if(window.cloudSyncSoon) cloudSyncSoon(); msg(t("backup_restored"));
   return true;
 }
 // Favorites live only in this browser's storage, so say so until the data has been backed up (to a file or Drive).
 // The backup time and a fingerprint of what was backed up are kept, so later edits flip the notice back to a warning.
 const canon = v => v && typeof v==="object" ? Array.isArray(v) ? v.map(canon) : Object.fromEntries(Object.keys(v).sort().map(k=>[k,canon(v[k])])) : v;
 const roomsSig = () => JSON.stringify(canon(store.get("rooms")||{}));
-function markBackedUp(){ store.set("backupAt",Date.now()); store.set("backupSig",roomsSig()); renderBackupStatus(); }
+function markBackedUp(sig=roomsSig()){ store.set("backupAt",Date.now()); store.set("backupSig",sig); renderBackupStatus(); }
 function renderBackupStatus(){
   const el=document.getElementById("bkstatus"), at=store.get("backupAt");
   if(!Object.keys(store.get("rooms")||{}).length){ el.textContent=""; el.className="bkstatus"; return; }
@@ -636,6 +637,8 @@ function renderBackupStatus(){
   const ok = at && store.get("backupSig")===roomsSig();
   el.className = "bkstatus"+(ok?" ok":" warn");
   el.textContent = ok ? t("bk_ok",{when}) : at ? t("bk_changed",{when}) : t("bk_never");
+  const until = window.cloudLiveUntil && cloudLiveUntil();
+  if(ok && until) el.textContent += " "+t("bk_live",{time:new Date(until).toLocaleTimeString(LANG,{timeStyle:"short"})});
   if(!ok){
     const b=document.createElement("button"); b.type="button"; b.className="linkbtn"; b.textContent=t("bk_action");
     b.addEventListener("click",()=>{ backupSel.scrollIntoView({block:"center",behavior:reduceMotion()?"auto":"smooth"}); backupSel.focus(); });

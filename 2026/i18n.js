@@ -89,7 +89,9 @@ const I18N = {
     bk_never: "Saved only in this browser, not backed up. Clearing site data or switching device loses it.",
     bk_changed: "Changed since your last backup ({{when}}).",
     bk_ok: "Backed up {{when}}.",
-    bk_action: "Back up now"
+    bk_action: "Back up now",
+    bk_live: "Changes sync to Google Drive until {{time}}.",
+    drive_sync_conflict: "Auto-sync stopped: Google Drive has a newer backup from another device. Restore it or back up again to choose."
   },
   nl: {
     title: "DAE 2026 Interactieve plattegrond",
@@ -177,7 +179,9 @@ const I18N = {
     bk_never: "Alleen in deze browser opgeslagen, geen backup. Bij wissen van sitegegevens of een ander apparaat ben je alles kwijt.",
     bk_changed: "Gewijzigd sinds je laatste backup ({{when}}).",
     bk_ok: "Gebackupt {{when}}.",
-    bk_action: "Nu backuppen"
+    bk_action: "Nu backuppen",
+    bk_live: "Wijzigingen worden gesynchroniseerd met Google Drive tot {{time}}.",
+    drive_sync_conflict: "Automatisch synchroniseren gestopt: Google Drive heeft een nieuwere backup van een ander apparaat. Herstel die of maak opnieuw een backup om te kiezen."
   }
 };
 

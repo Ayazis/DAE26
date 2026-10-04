@@ -152,3 +152,49 @@ test.describe("backup status", () => {
     await expect(page.locator("#bkstatus")).toContainText("Changed since your last backup");
   });
 });
+
+test.describe("Google Drive auto-sync", () => {
+  // A fake Google sign-in and Drive: one stored file, and a log of the uploads.
+  async function fakeGoogle(page) {
+    const uploads = [];
+    let stored = null;
+    await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
+      contentType: "text/javascript",
+      body: `window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){this.callback({access_token:"t",expires_in:3600})}})}}};`,
+    }));
+    await page.route(/googleapis\.com\/(upload\/)?drive\/v3\/files/, async r => {
+      const req = r.request();
+      if (req.method() === "GET") return r.fulfill({ json: { files: stored ? [{ id: "f1", modifiedTime: stored.at }] : [] } });
+      const body = req.postData();
+      stored = { at: new Date().toISOString(), body };
+      uploads.push(req.method());
+      return r.fulfill({ json: { modifiedTime: stored.at } });
+    });
+    return { uploads, stored: () => stored };
+  }
+  const driveBackup = page => page.locator("#backup").selectOption("drive");
+
+  test("after a Drive backup, later changes upload on their own", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect(page.locator("#bkstatus")).toContainText("Changes sync to Google Drive");
+    expect(g.uploads).toEqual(["POST"]);
+
+    await openRoom(page, "7");
+    await page.locator("#tip .favb").click();
+    await expect.poll(() => g.uploads, { timeout: 8000 }).toEqual(["POST", "PATCH"]);
+    expect(g.stored().body).toContain('"7"');
+    await expect(page.locator("#bkstatus")).toContainText("Backed up");
+    await expect(page.locator("#bkstatus")).not.toHaveClass(/warn/);
+  });
+
+  test("changes are not uploaded before a Drive backup has been made", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await open(page);
+    await openRoom(page, "3");
+    await page.locator("#tip .favb").click();
+    await page.waitForTimeout(4500);
+    expect(g.uploads).toEqual([]);
+  });
+});
