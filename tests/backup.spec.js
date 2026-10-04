@@ -232,3 +232,28 @@ test("Drive auto-sync waits until a note has stopped changing", async ({ page })
   await expect.poll(() => uploads.length, { timeout: 3000 }).toBe(3);
   expect(uploads[2]).toContain("hello world!");
 });
+
+test("Drive auto-sync sends a pending change when the page is hidden or closing", async ({ page }) => {
+  const seen = [];
+  await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
+    contentType: "text/javascript",
+    body: `window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){this.callback({access_token:"t",expires_in:3600})}})}}};`,
+  }));
+  await page.route(/googleapis\.com\/(upload\/)?drive\/v3\/files/, r => {
+    const req = r.request();
+    seen.push(req.method() + " " + new URL(req.url()).pathname);
+    if (req.method() === "GET") return r.fulfill({ json: { files: [] } });
+    return r.fulfill({ json: { id: "f1", modifiedTime: new Date().toISOString() } });
+  });
+  await open(page, { rooms: { 3: { fav: true } } });
+  await page.locator("#backup").selectOption("drive");
+  await expect.poll(() => seen.length).toBe(2); // GET (find), POST (create)
+
+  await openRoom(page, "7");
+  await page.locator("#tip .favb").click();
+  seen.length = 0;
+  await page.evaluate(() => addEventListener("pagehide", () => {}) || window.dispatchEvent(new Event("pagehide")));
+  // One request, straight to the remembered file, without the extra lookup.
+  await expect.poll(() => seen).toEqual(["PATCH /upload/drive/v3/files/f1"]);
+  await expect(page.locator("#bkstatus")).not.toHaveClass(/warn/);
+});
