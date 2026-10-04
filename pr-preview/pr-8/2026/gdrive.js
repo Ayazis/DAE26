@@ -38,33 +38,65 @@
   }
   const when = iso => new Date(iso).toLocaleString([], {dateStyle:"medium", timeStyle:"short"});
 
+  // Another device backed up since this one last synced? Compares Drive's own timestamps, so a skewed device clock can't fake it.
+  const remoteChanged = file => !!file && (()=>{ const known=store.get("cloudRemote") ?? store.get("cloudSync"); return !known || Date.parse(file.modifiedTime)>known+1000; })();
+  async function upload(file, body){
+    const f="&fields=modifiedTime";
+    const res = file
+      ? await drive(`${UPLOAD}/${file.id}?uploadType=media${f}`,{method:"PATCH", headers:{"Content-Type":"application/json"}, body})
+      : await (async()=>{ const b="dae"+Date.now();
+          return drive(`${UPLOAD}?uploadType=multipart${f}`,{method:"POST", headers:{"Content-Type":"multipart/related; boundary="+b},
+            body:`--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({name:FILE,parents:["appDataFolder"]})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`}); })();
+    const {modifiedTime}=await res.json();
+    store.set("cloudSeen",true); store.set("cloudSync",Date.now()); store.set("cloudRemote",Date.parse(modifiedTime));
+  }
   async function backup(){
     await getToken();
-    const body=JSON.stringify(backupPayload()), file=await findFile();
+    const body=JSON.stringify(backupPayload()), sig=roomsSig(), file=await findFile();
     // Another device backed up since this one last synced: don't silently overwrite it.
-    const last=store.get("cloudSync");
-    if(file && (!last || Date.parse(file.modifiedTime)>last+1000) &&
-       !confirm(t("drive_replace_confirm",{when:when(file.modifiedTime)}))) return;
-    if(file) await drive(`${UPLOAD}/${file.id}?uploadType=media`,{method:"PATCH", headers:{"Content-Type":"application/json"}, body});
-    else{
-      const b="dae"+Date.now();
-      await drive(`${UPLOAD}?uploadType=multipart`,{method:"POST", headers:{"Content-Type":"multipart/related; boundary="+b},
-        body:`--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({name:FILE,parents:["appDataFolder"]})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`});
-    }
-    store.set("cloudSeen",true); store.set("cloudSync",Date.now()); markBackedUp();
+    if(remoteChanged(file) && !confirm(t("drive_replace_confirm",{when:when(file.modifiedTime)}))) return;
+    await upload(file, body); markBackedUp(sig); goLive();
     msg(t("drive_backed_up",{time:new Date().toLocaleTimeString([], {timeStyle:"short"})}));
   }
+  // While the sign-in token is valid, later changes are pushed to Drive on their own (no popup needed). Browser-only tokens
+  // last about an hour and can't refresh silently, so this stops at expiry, on any error, or if another device wrote in between.
+  let live=false, timer=0, expiryTimer=0, busy=false, again=false;
+  const liveUntil = () => live && token && Date.now()<expires ? expires : 0;
+  function goLive(){
+    live=true; clearTimeout(expiryTimer);
+    expiryTimer=setTimeout(()=>{ live=false; renderBackupStatus(); }, Math.max(0,expires-Date.now())+50);
+    renderBackupStatus();
+  }
+  function stopLive(){ live=false; clearTimeout(timer); clearTimeout(expiryTimer); renderBackupStatus(); }
+  async function push(){
+    if(!liveUntil()) return stopLive();
+    if(busy){ again=true; return; }
+    busy=true;
+    try{
+      const body=JSON.stringify(backupPayload()), sig=roomsSig();
+      if(sig===store.get("backupSig")) return;
+      const file=await findFile();
+      if(remoteChanged(file)){ stopLive(); return msg(t("drive_sync_conflict")); }
+      await upload(file, body); markBackedUp(sig);
+    }catch(e){ stopLive(); msg(t("drive_error_msg",{msg:e.message})); }
+    finally{ busy=false; if(again){ again=false; schedule(); } }
+  }
+  function schedule(){ if(!liveUntil()) return; clearTimeout(timer); timer=setTimeout(push,3000); }
   async function restore(){
     await getToken();
     const file=await findFile();
     if(!file) return msg(t("drive_no_backup"));
     const rooms=parseBackup(await (await drive(`${API}/${file.id}?alt=media`)).json());
     store.set("cloudSeen",true);
-    if(restoreRooms(rooms, t("drive_backup_source",{when:when(file.modifiedTime)}))) store.set("cloudSync",Date.now());
+    if(restoreRooms(rooms, t("drive_backup_source",{when:when(file.modifiedTime)}))){
+      store.set("cloudSync",Date.now()); store.set("cloudRemote",Date.parse(file.modifiedTime)); goLive();
+    }
   }
   // Wrap so any failure surfaces as a message and never breaks the rest of the app.
   const run = fn => async()=>{ try{ await fn(); }catch(e){ msg(t("drive_error_msg",{msg:e.message})); } };
   // Picked up by the Backup/Restore buttons in app.js, which offer Google Drive only once this is set.
   window.cloudBackup = run(backup);
   window.cloudRestore = run(restore);
+  window.cloudSyncSoon = schedule;   // app.js calls this after every change to the saved rooms
+  window.cloudLiveUntil = liveUntil; // ms timestamp while auto-sync is on, else 0
 })();
