@@ -154,7 +154,7 @@ test.describe("backup status", () => {
 });
 
 test.describe("Google Drive auto-sync", () => {
-  // A fake Google sign-in and Drive: one stored file, and a log of the uploads.
+  // A fake Google sign-in and Drive: one stored file, and a log of the uploads. otherDevice() writes a newer backup.
   async function fakeGoogle(page) {
     const uploads = [];
     let stored = null;
@@ -168,9 +168,10 @@ test.describe("Google Drive auto-sync", () => {
       const body = req.postData();
       stored = { at: new Date().toISOString(), body };
       uploads.push(req.method());
-      return r.fulfill({ json: { modifiedTime: stored.at } });
+      return r.fulfill({ json: { id: "f1", modifiedTime: stored.at } });
     });
-    return { uploads, stored: () => stored };
+    return { uploads, stored: () => stored,
+      otherDevice: body => { stored = { at: new Date(Date.now() + 5000).toISOString(), body }; } };
   }
   const driveBackup = page => page.locator("#backup").selectOption("drive");
 
@@ -196,6 +197,69 @@ test.describe("Google Drive auto-sync", () => {
     await page.locator("#tip .favb").click();
     await page.waitForTimeout(2000);
     expect(g.uploads).toEqual([]);
+  });
+
+  test("saving a local file while a change waits doesn't keep it from Drive", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST"]);
+    await openRoom(page, "7");
+    await page.locator("#tip .favb").click();
+    await download(page); // inside the quiet second
+    await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
+    expect(g.stored().body).toContain('"7"');
+  });
+
+  test("restoring a local file while auto-sync is on sends it to Drive", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST"]);
+    answerDialog(page, true);
+    await restore(page, { app: "daem-2026", version: 1, rooms: { 9: { note: "from file" } } });
+    await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
+    expect(g.stored().body).toContain("from file");
+  });
+
+  test("leaving the page doesn't overwrite another device's newer backup", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await page.clock.install();
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST"]);
+    await page.clock.fastForward("00:31"); // this page last looked at Drive over 30 s ago
+    g.otherDevice('{"from":"other device"}');
+    await openRoom(page, "7");
+    await page.locator("#tip .favb").click();
+    await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+    await expect(page.locator("#msg")).toHaveText(/Auto-sync stopped/);
+    expect(g.uploads).toEqual(["POST"]);
+    expect(g.stored().body).toContain("other device");
+  });
+
+  test("leaving the page after a quiet spell checks Drive, then sends the change", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    await page.clock.install();
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST"]);
+    await page.clock.fastForward("00:31");
+    await openRoom(page, "7");
+    await page.locator("#tip .favb").click();
+    await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+    await expect.poll(() => g.uploads).toEqual(["POST", "PATCH"]);
+    expect(g.stored().body).toContain('"7"');
+  });
+
+  test("two quick Drive backups make one file", async ({ page }) => {
+    const g = await fakeGoogle(page);
+    // Slow lookups, so the second backup starts before the first has created the file.
+    await page.route(/googleapis\.com\/drive\/v3\/files\?/, async r => { await new Promise(ok => setTimeout(ok, 300)); await r.fallback(); });
+    await open(page, { rooms: { 3: { fav: true } } });
+    await driveBackup(page);
+    await driveBackup(page);
+    await expect.poll(() => g.uploads).toEqual(["POST", "PATCH"]);
   });
 });
 

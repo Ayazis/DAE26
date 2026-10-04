@@ -27,7 +27,7 @@ Off by default; the app is fully usable without it and local JSON backup/restore
 2. Enable the *Google Drive API* and use only the `drive.appdata` scope (non-sensitive, so no Google verification review).
 3. In `app.js` set `FEATURES.cloudBackup = true` and `GDRIVE_CLIENT_ID = "<your client id>"`.
 
-Adds three buttons under *Share & backup*: back up, restore, disconnect. The backup is one file in the app's hidden Drive folder. Google's script is only fetched when a button is first clicked. After a backup or restore, later changes sync to Drive automatically (one second after the last edit) for as long as the sign-in token is valid, about an hour. Browser-only tokens can't refresh silently, so after that the status line asks for a new backup. Auto-sync also stops if another device has written a newer backup. A change still waiting when the page is closed or hidden is sent right away in one keepalive request.
+Adds three buttons under *Share & backup*: back up, restore, disconnect. The backup is one file in the app's hidden Drive folder. Google's script is only fetched when a button is first clicked. After a backup or restore, later changes sync to Drive automatically (one second after the last edit) for as long as the sign-in token is valid, about an hour. Browser-only tokens can't refresh silently, so after that the status line asks for a new backup. Auto-sync also stops if another device has written a newer backup. A change still waiting when the page is closed or hidden is sent right away: in one keepalive request if Drive was checked for other devices' backups in the last 30 seconds (it is checked when a burst of changes starts), otherwise with the usual check first.
 
 ## Visitor statistics (GoatCounter)
 
