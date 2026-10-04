@@ -41,14 +41,14 @@
   // Another device backed up since this one last synced? Compares Drive's own timestamps, so a skewed device clock can't fake it.
   const remoteChanged = file => !!file && (()=>{ const known=store.get("cloudRemote") ?? store.get("cloudSync"); return !known || Date.parse(file.modifiedTime)>known+1000; })();
   async function upload(file, body){
-    const f="&fields=modifiedTime";
+    const f="&fields=id,modifiedTime";
     const res = file
       ? await drive(`${UPLOAD}/${file.id}?uploadType=media${f}`,{method:"PATCH", headers:{"Content-Type":"application/json"}, body})
       : await (async()=>{ const b="dae"+Date.now();
           return drive(`${UPLOAD}?uploadType=multipart${f}`,{method:"POST", headers:{"Content-Type":"multipart/related; boundary="+b},
             body:`--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({name:FILE,parents:["appDataFolder"]})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`}); })();
-    const {modifiedTime}=await res.json();
-    store.set("cloudSeen",true); store.set("cloudSync",Date.now()); store.set("cloudRemote",Date.parse(modifiedTime));
+    const {id,modifiedTime}=await res.json();
+    store.set("cloudSeen",true); store.set("cloudSync",Date.now()); store.set("cloudRemote",Date.parse(modifiedTime)); store.set("cloudFileId",id);
   }
   async function backup(){
     await getToken();
@@ -89,7 +89,24 @@
   // Clicking out of a note (or leaving the tab) counts as finished typing: sync right away instead of waiting out the pause.
   const flush = () => { if(!liveUntil()) return; clearTimeout(timer); timer=setTimeout(push, 300); };
   document.addEventListener("focusout", e=>{ if(e.target.classList && e.target.classList.contains("note")) flush(); });
-  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden") flush(); });
+  // Closing the page or switching away mid-wait: send the pending change now. The usual find-then-upload takes two requests and
+  // a closing page may not get to the second, so this is a single keepalive PATCH to the file id remembered from the last sync
+  // (the browser finishes it after the page is gone). If the page does not survive to see the answer, the next visit simply shows
+  // "changed since your last backup" and a manual backup fixes that; nothing is lost, the data is always saved locally first.
+  function flushOnExit(){
+    if(!liveUntil() || busy) return;
+    clearTimeout(timer);
+    const sig=roomsSig(), id=store.get("cloudFileId"), body=JSON.stringify(backupPayload());
+    if(sig===store.get("backupSig")) return;
+    if(!id || body.length>60000) return flush(); // keepalive bodies are capped at 64 KB
+    fetch(`${UPLOAD}/${id}?uploadType=media&fields=modifiedTime`,{method:"PATCH", keepalive:true, body,
+      headers:{Authorization:"Bearer "+token, "Content-Type":"application/json"}})
+      .then(r=>r.ok ? r.json() : Promise.reject())
+      .then(({modifiedTime})=>{ store.set("cloudSync",Date.now()); store.set("cloudRemote",Date.parse(modifiedTime)); markBackedUp(sig); })
+      .catch(()=>{});
+  }
+  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden") flushOnExit(); });
+  addEventListener("pagehide", flushOnExit);
   async function restore(){
     await getToken();
     const file=await findFile();
@@ -97,7 +114,7 @@
     const rooms=parseBackup(await (await drive(`${API}/${file.id}?alt=media`)).json());
     store.set("cloudSeen",true);
     if(restoreRooms(rooms, t("drive_backup_source",{when:when(file.modifiedTime)}))){
-      store.set("cloudSync",Date.now()); store.set("cloudRemote",Date.parse(file.modifiedTime)); goLive();
+      store.set("cloudSync",Date.now()); store.set("cloudRemote",Date.parse(file.modifiedTime)); store.set("cloudFileId",file.id); goLive();
     }
   }
   // Wrap so any failure surfaces as a message and never breaks the rest of the app.
