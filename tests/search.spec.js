@@ -89,11 +89,13 @@ test.describe("settings", () => {
     await expect(page.locator("#q")).toHaveAttribute("placeholder", "Zoek een merk, exposant, ruimte of notitie…");
     await expect(page.locator("#tip h2")).toHaveText("Kamer 3");
     await expect(page.locator("#tip .vis")).toHaveText("Markeer bezocht");
+    await expect(page.locator("#tip .ztag")).toHaveText("rode zone");
     await expect(page.locator(".room[data-r='50']")).toHaveAttribute("aria-label", "Kamer 50, Niet in gebruik");
     await expect(page.locator(".icon title").first()).not.toHaveText(/Toilets|Elevator|Info point|Wardrobe|First aid/);
     await expect(page.locator("#favs li")).toContainText("Kamer 3");
     expect(await page.title()).toBe("DAE 2026 Interactieve plattegrond");
 
+    await page.locator("#tip .vis").click(); // saving room state after the switch must keep the language
     await page.reload();
     await expect(page.locator("h1")).toHaveText(/Interactieve plattegrond/);
     await page.click("#lang");

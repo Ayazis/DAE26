@@ -204,6 +204,8 @@ PLAN.entrances.forEach(([x,y,dir,label])=>{
 });
 // Zone badge names on the floor plan itself are always Dutch (the venue's own zone names), independent of UI language.
 const ZNL={yellow:"gele zone",green:"groene zone",blue:"blauwe zone",red:"rode zone"};
+// A zone's name in the UI language, for the popup and the zone filter.
+const zname = z => LANG==="nl" ? z.nl : z.name;
 PLAN.badges.forEach(([z,x,y])=>{
   const g=el("g",{class:"badge z-"+z,transform:`translate(${x} ${y})`},L.icons); markers.push([g,x,y]);
   el("rect",{x:-40,y:-19,width:80,height:38,rx:6},g);
@@ -258,7 +260,11 @@ function focusRoom(r){
 }
 
 const ptrs = new Map(); let gesture=null;
+// Set when a finger tap opens a room. The popup then sits under the finger, and without cancelling that touch's
+// touchend the browser follows it with a click on whatever is there (a rating star, the favorite button, the notes).
+let eatTouchEnd=false;
 svg.addEventListener("pointerdown", e=>{
+  eatTouchEnd=false;
   svg.setPointerCapture(e.pointerId);
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   cancelAnimationFrame(anim); stopWheel();
@@ -288,13 +294,14 @@ const endPtr = e=>{
   if(!ptrs.has(e.pointerId)) return;
   ptrs.delete(e.pointerId);
   if(gesture && !gesture.moved && e.type==="pointerup"){
-    if(gesture.room) select(gesture.room.dataset.r,false);
+    if(gesture.room){ select(gesture.room.dataset.r,false); eatTouchEnd = e.pointerType==="touch"; }
     else if(!e.target.closest(".tip")) closeTip();
   }
   gesture = ptrs.size ? { start:{...vb}, pts:[...ptrs.values()].map(p=>({...p})), moved:true } : null;
 };
 svg.addEventListener("pointerup", endPtr);
 svg.addEventListener("pointercancel", endPtr);
+svg.addEventListener("touchend", e=>{ if(eatTouchEnd && e.cancelable) e.preventDefault(); eatTouchEnd=false; });
 /* Wheel zoom glides: each notch adds to a pending zoom (log scale) that is eased out over the next frames,
    around the point under the cursor, instead of jumping ~16% at once. */
 let wheel=null; // {z: pending log zoom, cx, cy, t: last frame time, raf}
@@ -394,7 +401,7 @@ function select(r, move){
   }).join("");
   tip.style.setProperty("--zc", z.color);
   if(!inUse(r)){
-    tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>
+    tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${esc(zname(z))}</span>
       <button type="button" class="x" aria-label="${esc(t("close"))}">×</button></div><div class="tb"><p class="none">${esc(t("not_in_use"))}</p></div>`;
     tip.querySelector(".x").addEventListener("click",closeTip);
     tip.hidden=false;
@@ -403,7 +410,7 @@ function select(r, move){
     return;
   }
   const st=roomState(r);
-  tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>${onePage?magBadge(pages[0]):""}
+  tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${esc(zname(z))}</span>${onePage?magBadge(pages[0]):""}
     <button type="button" class="favb" aria-pressed="${!!st.fav}" aria-label="${esc(t("favorite"))}" title="${esc(t("favorite"))}">${st.fav?"★":"☆"}</button>
     <button type="button" class="x" aria-label="${esc(t("close"))}">×</button></div><div class="tb">
     <div class="acts"><button type="button" class="vis" aria-pressed="${!!st.visited}">${st.visited?t("visited"):t("mark_visited")}</button>
@@ -516,7 +523,7 @@ document.getElementById("q").addEventListener("input",()=>{ clearTimeout(searchT
 const zbox=document.getElementById("zones");
 if(FEATURES.zoneToggles) ZONES.forEach(z=>{
   const b=document.createElement("button"); b.type="button"; b.dataset.z=z.id;
-  b.innerHTML=(z.color?`<span class="dot" style="background:${z.color}"></span>`:"")+z.name;
+  b.innerHTML=(z.color?`<span class="dot" style="background:${z.color}"></span>`:"")+esc(zname(z));
   b.addEventListener("click",()=>{
     if(!zones.size) ZONES.forEach(o=>zones.add(o.id)); // empty = all shown, so start from all four
     zones.has(z.id) ? zones.delete(z.id) : zones.add(z.id);
@@ -597,6 +604,7 @@ themeBtn.addEventListener("click",()=>setTheme(themeBtn.dataset.t==="dark"?"ligh
 const langBtn=document.getElementById("lang");
 langBtn.addEventListener("click",()=>setLang(LANG==="nl"?"en":"nl"));
 function onLangChange(){
+  store.set("lang", LANG); // setLang saved it too, but the store's own copy would overwrite that on its next save
   relabelRooms();
   if(sel) select(sel,false);
   refresh(); renderFavs();

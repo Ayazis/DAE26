@@ -1,5 +1,5 @@
 const { test, expect } = require("./fixtures");
-const { open, openRoom } = require("./helpers");
+const { open, openRoom, saved } = require("./helpers");
 
 const viewBox = page => page.evaluate(() => svg.getAttribute("viewBox").split(" ").map(Number));
 // Centre of a room on screen, in page pixels.
@@ -75,6 +75,34 @@ test.describe("pointer", () => {
       expect(after.y).toBeCloseTo(before.y, 0);
       await expect(page.locator("#tip")).toBeHidden(); // a pinch is not a tap
       expect(page.errors).toEqual([]);
+    });
+
+    test.describe("on a phone", () => {
+      test.use({ viewport: { width: 390, height: 844 } });
+
+      test("the tap that opens a room doesn't also press what the popup puts under the finger", async ({ page }) => {
+        await open(page);
+        // A room and a point in it where its popup (a sheet over the bottom half) has a button, link or the notes box.
+        const hit = await page.evaluate(() => {
+          for (const g of document.querySelectorAll(".room[tabindex]")) {
+            const r = g.dataset.r, a = g.getBoundingClientRect();
+            select(r, false);
+            for (const el of document.querySelectorAll("#tip button, #tip a, #tip textarea")) {
+              const b = el.getBoundingClientRect();
+              const x0 = Math.max(a.left, b.left), x1 = Math.min(a.right, b.right), y0 = Math.max(a.top, b.top), y1 = Math.min(a.bottom, b.bottom);
+              if (x1 - x0 > 4 && y1 - y0 > 4) { closeTip(); return { r, x: (x0 + x1) / 2, y: (y0 + y1) / 2 }; }
+            }
+            closeTip();
+          }
+        });
+        expect(hit).toBeTruthy();
+        await page.touchscreen.tap(hit.x, hit.y);
+        await expect(page.locator("#tip h2")).toHaveText(/^\d+$/.test(hit.r) ? "Room " + hit.r : hit.r);
+        await page.waitForTimeout(400);
+        expect(await saved(page)).toEqual({});
+        await expect(page.locator("#tip .note")).not.toBeFocused();
+        expect(page.errors).toEqual([]);
+      });
     });
   });
 });
