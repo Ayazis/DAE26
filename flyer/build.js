@@ -23,9 +23,8 @@ const TIP_HEIGHT = 198; // CSS px of the popup to keep: its top, down to the bra
       await app.evaluate(() => document.fonts.ready);
       await app.fill("#q", QUERY);
       await app.locator("#hits button").first().waitFor();
-      // A click, not a tap: on touch the popup opens on finger-up and the click after it lands in the popup.
-      await app.click(`.room[data-r="${ROOM}"]`);
-      await app.click("#tip .favb");
+      await app.tap(`.room[data-r="${ROOM}"]`);
+      await app.tap("#tip .favb");
       await app.waitForTimeout(300);
       const q = await app.locator("#q").boundingBox(), hits = await app.locator("#hits").boundingBox();
       const top = q.y - 8, search = { x: 16, y: top, width: 358, height: hits.y + hits.height + 8 - top };
