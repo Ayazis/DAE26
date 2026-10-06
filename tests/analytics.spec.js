@@ -1,7 +1,7 @@
 // Visitor statistics (analytics.js): the map must work the same whether GoatCounter is unset, set, or unreachable.
 const fs = require("fs");
 const path = require("path");
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./fixtures");
 
 const SITE = "https://ayazis.github.io/DAE26/2026/"; // served from the local test server, so the live-site checks run offline
 const SRC = fs.readFileSync(path.join(__dirname, "../2026/analytics.js"), "utf8");

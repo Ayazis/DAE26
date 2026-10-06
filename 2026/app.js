@@ -496,7 +496,7 @@ function refresh(){
   });
   const h=document.getElementById("hits");
   if(!q){ h.innerHTML=""; }
-  else if(!hits.length){ h.innerHTML=`<span class="none">${esc(t("no_matches",{q:esc(q)}))}</span>`; }
+  else if(!hits.length){ h.innerHTML=`<span class="none">${esc(t("no_matches",{q}))}</span>`; }
   else{
     h.innerHTML = `<span class="count">${esc(t("hits_count",{n:hits.length,noun:noun("room",hits.length)}))}</span>` + hits.map(r=>`<button type="button" data-go="${esc(r)}">${esc(rname(r))}</button>`).join("");
     h.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go,true)));

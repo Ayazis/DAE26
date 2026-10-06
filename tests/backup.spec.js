@@ -1,5 +1,5 @@
-const { test, expect } = require("@playwright/test");
-const { open, saved, openRoom, answerDialog, download, restore } = require("./helpers");
+const { test, expect } = require("./fixtures");
+const { open, saved, openRoom, answerDialog, download, restore, fakeGoogle } = require("./helpers");
 
 const DATA = {
   3: { fav: true, visited: true, rating: 5, note: "best room" },
@@ -154,25 +154,6 @@ test.describe("backup status", () => {
 });
 
 test.describe("Google Drive auto-sync", () => {
-  // A fake Google sign-in and Drive: one stored file, and a log of the uploads. otherDevice() writes a newer backup.
-  async function fakeGoogle(page) {
-    const uploads = [];
-    let stored = null;
-    await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
-      contentType: "text/javascript",
-      body: `window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){this.callback({access_token:"t",expires_in:3600})}})}}};`,
-    }));
-    await page.route(/googleapis\.com\/(upload\/)?drive\/v3\/files/, async r => {
-      const req = r.request();
-      if (req.method() === "GET") return r.fulfill({ json: { files: stored ? [{ id: "f1", modifiedTime: stored.at }] : [] } });
-      const body = req.postData();
-      stored = { at: new Date().toISOString(), body };
-      uploads.push(req.method());
-      return r.fulfill({ json: { id: "f1", modifiedTime: stored.at } });
-    });
-    return { uploads, stored: () => stored,
-      otherDevice: body => { stored = { at: new Date(Date.now() + 5000).toISOString(), body }; } };
-  }
   const driveBackup = page => page.locator("#backup").selectOption("drive");
 
   test("after a Drive backup, later changes upload on their own", async ({ page }) => {
@@ -185,7 +166,7 @@ test.describe("Google Drive auto-sync", () => {
     await openRoom(page, "7");
     await page.locator("#tip .favb").click();
     await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
-    expect(g.stored().body).toContain('"7"');
+    expect(g.stored.body).toContain('"7"');
     await expect(page.locator("#bkstatus")).toContainText("Backed up");
     await expect(page.locator("#bkstatus")).not.toHaveClass(/warn/);
   });
@@ -208,7 +189,7 @@ test.describe("Google Drive auto-sync", () => {
     await page.locator("#tip .favb").click();
     await download(page); // inside the quiet second
     await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
-    expect(g.stored().body).toContain('"7"');
+    expect(g.stored.body).toContain('"7"');
   });
 
   test("restoring a local file while auto-sync is on sends it to Drive", async ({ page }) => {
@@ -219,7 +200,7 @@ test.describe("Google Drive auto-sync", () => {
     answerDialog(page, true);
     await restore(page, { app: "daem-2026", version: 1, rooms: { 9: { note: "from file" } } });
     await expect.poll(() => g.uploads, { timeout: 4000 }).toEqual(["POST", "PATCH"]);
-    expect(g.stored().body).toContain("from file");
+    expect(g.stored.body).toContain("from file");
   });
 
   test("leaving the page doesn't overwrite another device's newer backup", async ({ page }) => {
@@ -235,7 +216,7 @@ test.describe("Google Drive auto-sync", () => {
     await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
     await expect(page.locator("#msg")).toHaveText(/Auto-sync stopped/);
     expect(g.uploads).toEqual(["POST"]);
-    expect(g.stored().body).toContain("other device");
+    expect(g.stored.body).toContain("other device");
   });
 
   test("leaving the page after a quiet spell checks Drive, then sends the change", async ({ page }) => {
@@ -249,7 +230,7 @@ test.describe("Google Drive auto-sync", () => {
     await page.locator("#tip .favb").click();
     await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
     await expect.poll(() => g.uploads).toEqual(["POST", "PATCH"]);
-    expect(g.stored().body).toContain('"7"');
+    expect(g.stored.body).toContain('"7"');
   });
 
   test("two quick Drive backups make one file", async ({ page }) => {

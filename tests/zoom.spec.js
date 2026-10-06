@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./fixtures");
 const { open } = require("./helpers");
 
 const viewBox = page => page.evaluate(() => svg.getAttribute("viewBox").split(" ").map(Number));

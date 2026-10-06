@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./fixtures");
 const { open, openRoom } = require("./helpers");
 
 // Height of the preview text in lines, from its rendered height.

@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./fixtures");
 const { open, saved, openRoom, answerDialog } = require("./helpers");
 
 test.describe("favorites", () => {

@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./fixtures");
 
 // The map must not wait for exhibitor data: room geometry comes from plan.js, who is in each room from data.js.
 test("the map draws before data.js arrives, then exhibitors fill in", async ({ page }) => {

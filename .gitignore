@@ -436,3 +436,6 @@ playwright-report/
 2026/sourcedata/.cache/
 # Raw HiFi.nl article HTML (holds per-visit CSRF tokens); the parsed article.md and exhibitors.json are committed
 2026/sourcedata/hifi.nl/*.html
+
+# Test coverage report (npm test)
+coverage/
