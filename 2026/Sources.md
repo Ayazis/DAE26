@@ -16,6 +16,7 @@ Last scrape: see `sourcedata/scraped.json` (`scraped_at`, plus counts per source
 | 5 | Floor plan (DAE) | https://dutchaudioevent.nl/assets/upload/images/dae2026floor.jpg | The official floor plan, 2067×1680. `plan.jpg` is a copy of it | `dutchaudioevent.nl/dae2026floor.jpg` |
 | 6 | HiFi.nl preview, A–M | https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets | Event facts (hours, prices, shuttle, sponsors) and one paragraph per exhibitor: room, zone and what they will demo, including premières | `hifi.nl/article-p1.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
 | 7 | HiFi.nl preview, N–Z | https://hifi.nl/artikel/dutch-audio-event-2026-get-your-tickets/2 | Same as 6, for exhibitors N–Z | `hifi.nl/article-p2.html`, `hifi.nl/article.md`, `hifi.nl/exhibitors.json` |
+| 8 | Show magazine (DAE) | https://dutchaudioevent.nl/beursmagazine (print only) | Exhibitor index: room and magazine page per exhibitor | `magazine/*.jpeg` (photos), `magazine/list.txt`, `magazine/exhibitors.json` |
 
 ### Known but not scraped
 
@@ -24,7 +25,6 @@ Last scrape: see `sourcedata/scraped.json` (`scraped_at`, plus counts per source
 | Speakers / talks | https://dutchaudioevent.nl/programma | Talk schedule for the Phase 6 "demo and talk schedule" |
 | Shops | https://dutchaudioevent.nl/dealers | Dealers per brand (also linked from the brand pages) |
 | News | https://dutchaudioevent.nl/nieuws | Per-exhibitor announcements |
-| Show magazine | https://dutchaudioevent.nl/beursmagazine | 180-page printed magazine with floor plans and every exhibitor; print only |
 | Tickets | https://dutchaudioevent.nl/tickets | Prices and opening hours (also in the HiFi.nl article) |
 
 ## `sourcedata/` layout
@@ -33,6 +33,7 @@ Last scrape: see `sourcedata/scraped.json` (`scraped_at`, plus counts per source
 sourcedata/
   scrape.py                     fetch + parse script (Python 3, standard library only)
   build_hifi.py                 hifi.nl/exhibitors.json -> ../hifi.js, matched to data.js exhibitors and rooms
+  build_magazine.py             magazine/list.txt -> magazine/exhibitors.json, and its differences with data.js
   scraped.json                  time of the last scrape and item counts
   dutchaudioevent.nl/
     exhibitors.json             sources 1 + 2
@@ -44,6 +45,10 @@ sourcedata/
     article.md                  both pages as text, one "### Exhibitor | Room | Zone" section each
     exhibitors.json             [{exhibitor, where, page, text}] parsed from the article
     translations-en.json        {heading: {src, en}}: our English translation of each paragraph (src = hash of the Dutch text)
+  magazine/
+    MagazineList*.jpeg          source 8, photos of the exhibitor index
+    list.txt                    the index as text, one "ROOM EXHIBITOR P. page" row per line (typed from the photos)
+    exhibitors.json             [{room, exhibitor, ex, page}]: list.txt matched to data.js rooms and EX keys
   .cache/                       raw HTML of every fetched page (git-ignored)
 ```
 
@@ -91,11 +96,12 @@ sourcedata/
 | `EX` (exhibitor → brands) | `exhibitors.json` → `brands[].name` |
 | `OCCUPANTS` (room → exhibitors) | `exhibitors.json` → `locations` (cross-checked with the HiFi.nl `where` lines) |
 | `URL_EX` (exhibitor → page) | `exhibitors.json` → `url` |
+| `MAG_PAGE` (room → exhibitor → magazine page) | `magazine/list.txt`, via `sourcedata/build_magazine.py` (the last block of `data.js`) |
 | `BOX` (room hotspots) | Traced by hand from `plan.jpg` (source 5) |
 | (not used yet) product categories | `brands.json` → `categories`, for the Phase 3 category filter |
 | `HIFI` in `hifi.js` (room preview, searchable) | `hifi.nl/exhibitors.json` + `hifi.nl/translations-en.json`, via `sourcedata/build_hifi.py` |
 
-`data.js` is still edited by hand; the script only refreshes the snapshots. `hifi.js` is generated: run `python 2026/sourcedata/build_hifi.py` after a HiFi.nl refresh or after renaming an exhibitor in `data.js`. It stops when a HiFi.nl heading has no matching exhibitor; add it to `ALIAS` in the script. It also strips page footers the scraper left in a few paragraphs, and warns when a paragraph has no English translation or its Dutch text changed since it was translated; update `translations-en.json` then (until then English mode shows the Dutch text). Diff the JSON after a refresh to see what changed on the site.
+`data.js` is still edited by hand (except its `MAG_PAGE` block); the script only refreshes the snapshots. `hifi.js` is generated: run `python 2026/sourcedata/build_hifi.py` after a HiFi.nl refresh or after renaming an exhibitor in `data.js`. It stops when a HiFi.nl heading has no matching exhibitor; add it to `ALIAS` in the script. It also strips page footers the scraper left in a few paragraphs, and warns when a paragraph has no English translation or its Dutch text changed since it was translated; update `translations-en.json` then (until then English mode shows the Dutch text). Diff the JSON after a refresh to see what changed on the site.
 
 ### Cross-check of the 28 Sep 2026 scrape against `data.js`
 
@@ -105,6 +111,18 @@ sourcedata/
 - **Brands:** `EX` lists more brands than the exhibitor pages (for example Reference Sounds, Terrason Audio, Music2). These came from the exhibitor descriptions and brand pages, so the site's `brands` cards are a subset, not a replacement. Spelling differs in places (for example "Inakustik" vs "In-Akustik", "Quad" vs "QUAD").
 - **Categories:** all 300 brands have a `DAE 2026` tag, and most have one or more product categories: versterkers (92), Luidsprekers (84), Audio accessoires (40), dac (36), audio streamers (36), kabels (26), platenspelers (24), CD spelers (24), koptelefoons (16), draadloze speakers (15), stroomvoorziening (12), subwoofers (11), portable audio (7), akoestiek (5), Netwerk apparatuur (3), Beeld (3), Sponsors (4). That covers what the Phase 3 category filter needs.
 - **HiFi.nl** has 91 exhibitor paragraphs (95 exhibitors on the site). Its room numbers agree with the site. Two small differences: it puts Hi-Stands (Meijerij foyer) in the yellow zone where the site says blue, and gives no zone for Symphonic Line. It also has a "Sound United" paragraph (same room and text as Bowers & Wilkins) that has no page of its own on the site.
+
+### Show magazine
+
+The magazine's exhibitor index is only on paper, so it's photographed and typed into `magazine/list.txt`. Windows OCR (also what PowerToys Text Extractor uses) misses the pale yellow and light blue room names in the photos, so check OCR output against the photos before you use it. Then run
+
+```bash
+python 2026/sourcedata/build_magazine.py
+```
+
+It writes `magazine/exhibitors.json`, replaces the generated `MAG_PAGE` block at the end of `data.js` (only rows whose exhibitor and room match `data.js`), and lists every difference with `data.js`. Misspelled names are matched to the closest exhibitor and shown under "guessed". A name that has no `data.js` match goes in `ALIAS`. Pass other text files as arguments to check those instead.
+
+Checked on 6 Oct 2026: every room matches `data.js`. The magazine calls Joep Slooten speakers & meubels *JS Wood & Sound* (in `ALIAS`). Hi-Stands, Music Emotion, Qobuz and STS Digital have no page. The room 53 row for Bowers & Wilkins is crossed out by hand on the photo.
 
 ## Refreshing
 
