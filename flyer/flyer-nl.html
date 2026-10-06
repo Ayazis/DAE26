@@ -17,7 +17,9 @@
   .flyer:nth-child(-n+2) { border-bottom: 0.3mm dashed var(--line); }
   .event { margin: 0; font: 600 10pt/1 "Barlow Condensed", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
   h1 { margin: -1mm 0 0; font: 700 20pt/1.05 "Barlow Condensed", sans-serif; color: var(--navy); text-wrap: balance; }
-  .shot { display: block; width: 100%; border: 0.3mm solid var(--line); border-radius: 2mm; }
+  .shot { width: 66mm; background: #F4F5F6; border: 0.3mm solid var(--line); border-radius: 3mm; overflow: hidden; }
+  .shot img { display: block; width: 100%; }
+  .shot .room { width: 90.5%; margin: 1mm auto 0; } /* popup is 324 of the 358 px the search crop spans */
   .bottom { display: flex; align-items: center; gap: 5mm; width: 100%; text-align: left; }
   .qr { flex: none; width: 30mm; height: 30mm; border: 0.5mm dashed var(--navy); border-radius: 2mm; display: grid; place-items: center; font: 600 10pt "Barlow Condensed", sans-serif; letter-spacing: 0.1em; color: var(--navy); }
   .line2 { margin: 0; font-size: 10.5pt; line-height: 1.35; }
@@ -30,7 +32,7 @@
   <section class="flyer">
     <p class="event">Dutch Audio Event 2026</p>
     <h1>Vind elke ruimte en elk merk op je telefoon</h1>
-    <img class="shot" src="app-nl.jpg" alt="De plattegrond met het venster van ruimte 46 open">
+    <div class="shot"><img src="search-nl.jpg" alt="Zoeken naar QUAD"><img class="room" src="room-nl.jpg" alt="Het venster van kamer 46, gemarkeerd als favoriet"></div>
     <div class="bottom">
       <div class="qr">QR-CODE</div>
       <div>
@@ -42,7 +44,7 @@
   <section class="flyer">
     <p class="event">Dutch Audio Event 2026</p>
     <h1>Vind elke ruimte en elk merk op je telefoon</h1>
-    <img class="shot" src="app-nl.jpg" alt="De plattegrond met het venster van ruimte 46 open">
+    <div class="shot"><img src="search-nl.jpg" alt="Zoeken naar QUAD"><img class="room" src="room-nl.jpg" alt="Het venster van kamer 46, gemarkeerd als favoriet"></div>
     <div class="bottom">
       <div class="qr">QR-CODE</div>
       <div>
@@ -54,7 +56,7 @@
   <section class="flyer">
     <p class="event">Dutch Audio Event 2026</p>
     <h1>Vind elke ruimte en elk merk op je telefoon</h1>
-    <img class="shot" src="app-nl.jpg" alt="De plattegrond met het venster van ruimte 46 open">
+    <div class="shot"><img src="search-nl.jpg" alt="Zoeken naar QUAD"><img class="room" src="room-nl.jpg" alt="Het venster van kamer 46, gemarkeerd als favoriet"></div>
     <div class="bottom">
       <div class="qr">QR-CODE</div>
       <div>
@@ -66,7 +68,7 @@
   <section class="flyer">
     <p class="event">Dutch Audio Event 2026</p>
     <h1>Vind elke ruimte en elk merk op je telefoon</h1>
-    <img class="shot" src="app-nl.jpg" alt="De plattegrond met het venster van ruimte 46 open">
+    <div class="shot"><img src="search-nl.jpg" alt="Zoeken naar QUAD"><img class="room" src="room-nl.jpg" alt="Het venster van kamer 46, gemarkeerd als favoriet"></div>
     <div class="bottom">
       <div class="qr">QR-CODE</div>
       <div>
