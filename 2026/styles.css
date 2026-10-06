@@ -142,6 +142,10 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .tip .favb{font:inherit;font-size:22px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
 .tip .favb[aria-pressed="true"]{color:var(--star)}
 .tip .favb+.x{margin-left:4px}
+.mag{display:inline-block;font-size:12px;font-weight:600;line-height:1.4;padding:0 6px;border:1px solid var(--line);border-radius:999px;color:var(--muted);white-space:nowrap;text-transform:none;letter-spacing:0}
+.tip .ph .mag{margin-left:auto}
+.tip .mag+.favb{margin-left:0}
+.exn .mag{margin-left:6px}
 .note{display:block;width:100%;box-sizing:border-box;margin:8px 0 2px;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);resize:vertical}
 .side{margin-top:18px}
 .side h2{font-family:"Barlow Condensed",sans-serif;font-size:22px;margin:0 0 8px}
