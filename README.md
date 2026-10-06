@@ -12,3 +12,14 @@ A companion web app, hosted as a static site on GitHub Pages, that helps visitor
 - **Keep it simple:** plain HTML, CSS and JS with no build step and no backend. Personal data stays in the browser.
 
 The app for 2026 lives in [`2026/`](2026/) (see its README). The roadmap is in [PLAN.md](PLAN.md).
+
+## Tests
+
+End-to-end tests with [Playwright](https://playwright.dev) in Google Chrome, in [`tests/`](tests/). They serve the repo locally and fake every outside service (Google sign-in and Drive, GoatCounter, fonts), so they run offline.
+
+```sh
+npm ci
+npm test
+```
+
+Each run also measures JS coverage of the app code (`app.js`, `gdrive.js`, `i18n.js`, `legal.js`, `plan.js`, `analytics.js`): a summary is printed at the end, with the full report in `coverage/index.html`. On GitHub the tests run for every push to main and every pull request ([tests.yml](.github/workflows/tests.yml)), and the site and PR previews are only published when they pass.

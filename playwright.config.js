@@ -5,7 +5,10 @@ const PORT = 4173;
 module.exports = defineConfig({
   testDir: "tests",
   fullyParallel: true,
-  reporter: [["list"]],
+  forbidOnly: !!process.env.CI, // a stray test.only must not let CI pass on a fraction of the suite
+  reporter: process.env.CI ? [["list"], ["github"]] : [["list"]],
+  globalSetup: "./tests/global-setup.js",       // JS coverage of the app code, see tests/coverage.js
+  globalTeardown: "./tests/global-teardown.js",
   use: {
     baseURL: `http://127.0.0.1:${PORT}/2026/`,
     channel: "chrome",

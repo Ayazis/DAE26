@@ -47,4 +47,32 @@ const restore = (page, content, name = "backup.json") =>
   page.setInputFiles("#impjson", { name, mimeType: "application/json",
     buffer: Buffer.from(typeof content === "string" ? content : JSON.stringify(content)) });
 
-module.exports = { STORE_KEY, open, saved, openRoom, answerDialog, download, restore };
+// A fake Google sign-in and Drive: one stored backup file and a log of the uploads.
+// g.otherDevice(body) writes a newer backup as if from another device; g.failNext(status) makes the next Drive request fail.
+// The sign-in popup's answer is window.__signIn in the page (default: a token valid for an hour); requestAccessToken's
+// prompt values are logged in window.__prompts.
+async function fakeGoogle(page) {
+  const g = { uploads: [], stored: null, fail: null,
+    otherDevice(body) { g.stored = { at: new Date(Date.now() + 5000).toISOString(), body }; },
+    failNext(status) { g.fail = status; } };
+  await page.route("https://accounts.google.com/gsi/client", r => r.fulfill({
+    contentType: "text/javascript",
+    body: `window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(o){
+      (window.__prompts ||= []).push(o.prompt);
+      const r = window.__signIn || {access_token:"t", expires_in:3600};
+      if(r.errorType) this.error_callback({type:r.errorType}); else this.callback(r);
+    }})}}};`,
+  }));
+  await page.route(/googleapis\.com\/(upload\/)?drive\/v3\/files/, async r => {
+    const req = r.request();
+    if (g.fail) { const status = g.fail; g.fail = null; return r.fulfill({ status, json: { error: status } }); }
+    if (req.method() === "GET" && req.url().includes("alt=media")) return r.fulfill({ contentType: "application/json", body: g.stored.body });
+    if (req.method() === "GET") return r.fulfill({ json: { files: g.stored ? [{ id: "f1", modifiedTime: g.stored.at }] : [] } });
+    g.stored = { at: new Date().toISOString(), body: req.postData() };
+    g.uploads.push(req.method());
+    return r.fulfill({ json: { id: "f1", modifiedTime: g.stored.at } });
+  });
+  return g;
+}
+
+module.exports = { STORE_KEY, open, saved, openRoom, answerDialog, download, restore, fakeGoogle };
