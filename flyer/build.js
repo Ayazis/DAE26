@@ -8,6 +8,7 @@ const DIR = __dirname;
 const PORT = 4174;
 const QUERY = "QUAD"; // typed in the search box
 const ROOM = "46";    // room whose popup is open, marked as a favorite
+const MAP_WIDTH = 950;  // map units across the screen: wide enough to read as a floor plan, with the room in view
 const TIP_HEIGHT = 198; // CSS px of the popup to keep: its top, down to the brand list
 
 (async () => {
@@ -22,15 +23,23 @@ const TIP_HEIGHT = 198; // CSS px of the popup to keep: its top, down to the bra
       if (lang === "nl") await app.tap("#lang");
       await app.evaluate(() => document.fonts.ready);
       await app.fill("#q", QUERY);
-      await app.locator("#hits button").first().waitFor();
-      await app.tap(`.room[data-r="${ROOM}"]`);
+      await app.locator("#hits button", { hasText: new RegExp(`\\b${ROOM}$`) }).tap(); // opens the room and moves the map to it
+      await app.waitForTimeout(600);
+      // Zoom out around the room, keeping it in the top quarter above the popup like the app does.
+      await app.evaluate(([r, W]) => {
+        const s = spots[r], h = W / (box.clientWidth / box.clientHeight);
+        vb = { x: s.x + s.w / 2 - W / 2, y: s.y + s.h / 2 - h * 0.22, w: W, h }; applyVB();
+      }, [ROOM, MAP_WIDTH]);
       await app.tap("#tip .favb");
+      // The tap may have scrolled the star into view, and while it has focus a popup below the fold is lifted
+      // (as if for the keyboard). Undo both: the crop below is from the top of the page.
+      await app.evaluate(() => { document.activeElement.blur(); scrollTo(0, 0); });
       await app.waitForTimeout(300);
-      const q = await app.locator("#q").boundingBox(), hits = await app.locator("#hits").boundingBox();
-      const top = q.y - 8, search = { x: 16, y: top, width: 358, height: hits.y + hits.height + 8 - top };
-      await app.screenshot({ path: path.join(DIR, `search-${lang}.jpg`), clip: search, type: "jpeg", quality: 92 });
-      const tip = await app.locator("#tip").boundingBox();
-      await app.screenshot({ path: path.join(DIR, `room-${lang}.jpg`), clip: { ...tip, height: TIP_HEIGHT }, type: "jpeg", quality: 92 });
+      // From the search box down through the map to the top of the popup.
+      const q = await app.locator("#q").boundingBox(), tip = await app.locator("#tip").boundingBox();
+      const top = q.y - 8;
+      await app.screenshot({ path: path.join(DIR, `app-${lang}.jpg`), type: "jpeg", quality: 92,
+        clip: { x: 16, y: top, width: 358, height: tip.y + TIP_HEIGHT - top } });
       await ctx.close();
     }
     const page = await browser.newPage();
