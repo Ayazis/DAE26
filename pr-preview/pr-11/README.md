@@ -22,4 +22,6 @@ npm ci
 npm test
 ```
 
-Each run also measures JS coverage of the app code (`app.js`, `gdrive.js`, `i18n.js`, `legal.js`, `plan.js`, `analytics.js`): a summary is printed at the end, with the full report in `coverage/index.html`. On GitHub the tests run for every push to main and every pull request ([tests.yml](.github/workflows/tests.yml)), and the site and PR previews are only published when they pass.
+Each run also measures JS coverage of the app code (`app.js`, `gdrive.js`, `i18n.js`, `legal.js`, `plan.js`, `analytics.js`): a summary is printed at the end, with the full report in `coverage/index.html`. On GitHub the tests run for every push to main and every pull request ([tests.yml](.github/workflows/tests.yml)), and the site and PR previews are only published when they pass. A pull request can't be merged into main until they pass.
+
+After refreshing the event data (see [2026/Sources.md](2026/Sources.md)), run `npm run check-data`. It checks that every room with exhibitors is on the floor plan, that every exhibitor has a page link, and that every HiFi.nl preview belongs to an exhibitor in its room. It's a manual check, not part of `npm test`.

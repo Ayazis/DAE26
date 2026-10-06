@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "serve": "node tests/serve.js",
-    "test": "playwright test"
+    "test": "playwright test",
+    "check-data": "node tests/check-data.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
