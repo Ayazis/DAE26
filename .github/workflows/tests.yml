@@ -1,6 +1,6 @@
 # The Playwright tests. pages.yml runs them on every push to main and every pull request, and only deploys the site or
-# a PR preview once they pass. To also block merging a PR that fails them: Settings → Branches → add a branch protection
-# rule for main → "Require status checks to pass before merging" → add the check "test / test".
+# a PR preview once they pass. main's branch protection requires the resulting check, "test / test", before merging
+# (Settings → Branches), so if this job or pages.yml's "test" job is renamed, update the required check there too.
 name: Tests
 
 on:
