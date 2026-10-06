@@ -1,0 +1,12 @@
+{
+  "name": "dutch-audio-event-map",
+  "private": true,
+  "scripts": {
+    "serve": "node tests/serve.js",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "monocart-coverage-reports": "^2.13.1"
+  }
+}
