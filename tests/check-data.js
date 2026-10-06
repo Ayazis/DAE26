@@ -1,4 +1,4 @@
-// Manual check of the event data, for after a data refresh (sourcedata/scrape.py, build_hifi.py): `npm run check-data`.
+// Manual check of the event data, for after a data refresh (sourcedata/scrape.py, build_hifi.py, build_magazine.py): `npm run check-data`.
 // Not part of `npm test` or CI. Errors are things the map would show wrongly or not at all; warnings are worth a look.
 const fs = require("fs");
 const path = require("path");
@@ -6,8 +6,8 @@ const vm = require("vm");
 
 const DIR = path.join(__dirname, "../2026");
 const src = ["plan.js", "data.js", "hifi.js"].map(f => fs.readFileSync(path.join(DIR, f), "utf8")).join("\n;\n");
-const { ZONES, BOX, EX, OCCUPANTS, URL_EX, HIFI, HIFI_URL } =
-  vm.runInNewContext(src + "\n;({ ZONES, BOX, EX, OCCUPANTS, URL_EX, HIFI, HIFI_URL })", {});
+const { ZONES, BOX, EX, OCCUPANTS, URL_EX, MAG_PAGE, HIFI, HIFI_URL } =
+  vm.runInNewContext(src + "\n;({ ZONES, BOX, EX, OCCUPANTS, URL_EX, MAG_PAGE, HIFI, HIFI_URL })", {});
 
 const errors = [], warnings = [];
 const error = m => errors.push(m), warn = m => warnings.push(m);
@@ -47,6 +47,15 @@ Object.entries(EX).forEach(([e, brands]) => {
   if (new Set(brands.map(b => b.toLowerCase())).size !== brands.length) warn(`"${e}" lists a brand twice`);
 });
 Object.keys(URL_EX).forEach(e => { if (!roomsOf[e]) warn(`URL_EX "${e}" is in no room`); });
+
+// Show magazine pages (sourcedata/build_magazine.py): each one is for an exhibitor in that room.
+Object.entries(MAG_PAGE).forEach(([r, pages]) => Object.entries(pages).forEach(([e, p]) => {
+  if (!(OCCUPANTS[r] || []).includes(e)) error(`MAG_PAGE "${r}" has a page for "${e}", who is not in that room, so it never shows`);
+  if (!Number.isInteger(p) || p < 1) error(`MAG_PAGE "${r}" "${e}" has page ${JSON.stringify(p)}`);
+}));
+Object.entries(OCCUPANTS).forEach(([r, exs]) => exs.forEach(e => {
+  if (!(MAG_PAGE[r] || {})[e]) warn(`"${e}" in "${r}" has no show magazine page`);
+}));
 
 // HiFi.nl previews: shown under the first of their exhibitors found in each of their rooms.
 const covered = new Set();

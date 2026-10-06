@@ -37,6 +37,11 @@ const WHERE = {};
 // until then PV is empty and rooms simply have no preview.
 const PV = {};
 
+// Page in the printed show magazine per room and exhibitor (data.js MAG_PAGE, from sourcedata/build_magazine.py).
+// Shown as a badge next to the star when all exhibitors in the room share one page, else next to each exhibitor's name.
+const magPage = (r,e) => typeof MAG_PAGE==="undefined" ? undefined : (MAG_PAGE[r]||{})[e];
+const magBadge = n => n ? `<span class="mag" title="${esc(t("mag_page_title",{n}))}" aria-label="${esc(t("mag_page_title",{n}))}">${esc(t("mag_page",{n}))}</span>` : "";
+
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hl = (t,q) => { if(!q) return esc(t); const i=t.toLowerCase().indexOf(q); return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); };
 // Preview texts are long Dutch prose, so they only match at the start of a word and from 3 characters on
@@ -378,13 +383,14 @@ function select(r, move){
   sel=r;
   Object.entries(spots).forEach(([k,s])=>s.g.classList.toggle("sel", k===r));
   const {z,exs} = ROOMS[r]; const q=cur();
+  const pages = exs.map(e=>magPage(r,e)), onePage = !!pages[0] && pages.every(p=>p===pages[0]);
   const blocks = exs.map(e=>{
     const list=EX[e]||[];
     const others=(WHERE[e]||[]).filter(x=>x!==r);
     const also = others.length ? `<div class="also">${esc(t("also_in"))}${others.map(o=>`<button type="button" data-go="${esc(o)}">${esc(rname(o))}</button>`).join(", ")}</div>` : "";
     const link = URL_EX[e] ? `<a class="ext" href="${esc(URL_EX[e])}" target="_blank" rel="noopener">${esc(t("view_page"))}</a>` : "";
     const b = list.length ? list.map(x=>hl(x,q)).join(", ") : `<span class="none">${esc(t("no_brands"))}</span>`;
-    return `<div class="ex"><div class="exn"><span>${hl(e,q)}</span>${link}</div><div class="brands">${b}</div>${also}${previews(r,e,q)}</div>`;
+    return `<div class="ex"><div class="exn"><span>${hl(e,q)}${onePage?"":magBadge(magPage(r,e))}</span>${link}</div><div class="brands">${b}</div>${also}${previews(r,e,q)}</div>`;
   }).join("");
   tip.style.setProperty("--zc", z.color);
   if(!inUse(r)){
@@ -397,7 +403,7 @@ function select(r, move){
     return;
   }
   const st=roomState(r);
-  tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>
+  tip.innerHTML = `<div class="ph"><h2>${esc(rname(r))}</h2><span class="ztag">${z.name}</span>${onePage?magBadge(pages[0]):""}
     <button type="button" class="favb" aria-pressed="${!!st.fav}" aria-label="${esc(t("favorite"))}" title="${esc(t("favorite"))}">${st.fav?"★":"☆"}</button>
     <button type="button" class="x" aria-label="${esc(t("close"))}">×</button></div><div class="tb">
     <div class="acts"><button type="button" class="vis" aria-pressed="${!!st.visited}">${st.visited?t("visited"):t("mark_visited")}</button>
