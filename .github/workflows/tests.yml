@@ -1,0 +1,39 @@
+# The Playwright tests. pages.yml runs them on every push to main and every pull request, and only deploys the site or
+# a PR preview once they pass. To also block merging a PR that fails them: Settings → Branches → add a branch protection
+# rule for main → "Require status checks to pass before merging" → add the check "test / test".
+name: Tests
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The tests run in Google Chrome (channel "chrome" in playwright.config.js). GitHub's Ubuntu image has it; install it if not.
+      - run: google-chrome --version || npx playwright install --with-deps chrome
+      - run: npm test
+        env:
+          CI: true
+      - name: Coverage summary
+        if: always() && hashFiles('coverage/coverage-details.md') != ''
+        run: cat coverage/coverage-details.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: |
+            coverage/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore

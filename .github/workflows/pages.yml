@@ -1,5 +1,6 @@
 # Publishes the site to the gh-pages branch, which GitHub Pages serves (Settings → Pages → Deploy from a branch → gh-pages, / (root)).
 # main goes to the root; every open pull request gets a preview at pr-preview/pr-<number>/ that is removed when the PR closes.
+# Nothing is published unless the tests (tests.yml) pass.
 name: Pages
 
 on:
@@ -14,7 +15,12 @@ permissions:
   pull-requests: write  # preview link comment
 
 jobs:
+  test:
+    if: github.event.action != 'closed'
+    uses: ./.github/workflows/tests.yml
+
   deploy:
+    needs: test
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     concurrency: pages-main
@@ -30,8 +36,12 @@ jobs:
           force: false                # rebase onto gh-pages instead of force-pushing over previews
 
   preview:
-    # Pull requests from forks get a read-only token and can't push previews.
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    # Pull requests from forks get a read-only token and can't push previews. Closing a PR removes its preview without
+    # testing (the test job is skipped then, hence always()).
+    needs: test
+    if: >-
+      always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      && (needs.test.result == 'success' || github.event.action == 'closed')
     runs-on: ubuntu-latest
     concurrency: preview-${{ github.ref }}
     steps:
