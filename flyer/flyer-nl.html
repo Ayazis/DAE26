@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>DAE 2026 Plattegrond Flyer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap">
+<style>
+  /* A4-vel met vier A6-flyers; knip langs de stippellijnen. */
+  @page { size: A4; margin: 0; }
+  :root { --ink:#1A1D21; --muted:#5E6670; --navy:#1E3557; --line:#B8C0C8; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: var(--ink); }
+  body { font-family: "Barlow", system-ui, sans-serif; }
+  .sheet { width: 210mm; height: 297mm; display: grid; grid-template: repeat(2, 1fr) / repeat(2, 1fr); }
+  .flyer { position: relative; padding: 12mm 10mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 7mm; }
+  .flyer:nth-child(odd) { border-right: 0.3mm dashed var(--line); }
+  .flyer:nth-child(-n+2) { border-bottom: 0.3mm dashed var(--line); }
+  .event { margin: 0; font: 600 10pt/1 "Barlow Condensed", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 0; font: 700 21pt/1.05 "Barlow Condensed", sans-serif; color: var(--navy); text-wrap: balance; }
+  .line2 { margin: -3mm 0 0; font-size: 11pt; line-height: 1.35; text-wrap: balance; }
+  .qr { width: 42mm; height: 42mm; border: 0.5mm dashed var(--navy); border-radius: 2mm; display: grid; place-items: center; font: 600 11pt "Barlow Condensed", sans-serif; letter-spacing: 0.1em; color: var(--navy); }
+  .url { margin: -4mm 0 0; font-size: 8.5pt; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <!-- Vier identieke exemplaren; pas de eerste aan en kopieer die over de andere drie. -->
+  <section class="flyer">
+    <p class="event">Dutch Audio Event 2026</p>
+    <h1>Vind elke ruimte en elk merk op je telefoon</h1>
+    <p class="line2">Scan voor de interactieve plattegrond. Gratis, je hoeft niets te installeren.</p>
+    <div class="qr">QR-CODE</div>
+    <p class="url">ayazis.github.io/DAE26</p>
+  </section>
+  <section class="flyer">
+    <p class="event">Dutch Audio Event 2026</p>
+    <h1>Vind elke ruimte en elk merk op je telefoon</h1>
+    <p class="line2">Scan voor de interactieve plattegrond. Gratis, je hoeft niets te installeren.</p>
+    <div class="qr">QR-CODE</div>
+    <p class="url">ayazis.github.io/DAE26</p>
+  </section>
+  <section class="flyer">
+    <p class="event">Dutch Audio Event 2026</p>
+    <h1>Vind elke ruimte en elk merk op je telefoon</h1>
+    <p class="line2">Scan voor de interactieve plattegrond. Gratis, je hoeft niets te installeren.</p>
+    <div class="qr">QR-CODE</div>
+    <p class="url">ayazis.github.io/DAE26</p>
+  </section>
+  <section class="flyer">
+    <p class="event">Dutch Audio Event 2026</p>
+    <h1>Vind elke ruimte en elk merk op je telefoon</h1>
+    <p class="line2">Scan voor de interactieve plattegrond. Gratis, je hoeft niets te installeren.</p>
+    <div class="qr">QR-CODE</div>
+    <p class="url">ayazis.github.io/DAE26</p>
+  </section>
+</div>
+</body>
+</html>
