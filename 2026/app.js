@@ -433,7 +433,8 @@ function placeTip(){
   const bw=box.clientWidth, bh=box.clientHeight, gap=10, pad=8;
   const narrow = bw<520;
   tip.classList.toggle("sheet", narrow);
-  if(narrow){ tip.style.left=""; tip.style.top=""; return; }
+  if(narrow){ tip.style.left=""; tip.style.top=""; fitSheet(); return; }
+  tip.style.bottom=""; tip.style.maxHeight="";
   const tw=tip.offsetWidth, th=tip.offsetHeight;
   let x, y;
   if(rx+rw+gap+tw <= bw-pad) x=rx+rw+gap;
@@ -446,6 +447,30 @@ function placeTip(){
   y = Math.min(Math.max(pad, y), Math.max(pad, bh-th-pad));
   tip.style.left=x+"px"; tip.style.top=y+"px";
 }
+/* On phones the keyboard covers the bottom of the window without resizing the page, hiding the sheet and the
+   note being typed. While a field in the sheet has focus, lift the sheet into the part of the map still visible. */
+function fitSheet(){
+  tip.style.bottom=""; tip.style.maxHeight="";
+  const vv=window.visualViewport, f=document.activeElement;
+  if(!vv || !tip.contains(f)) return;
+  const b=box.getBoundingClientRect();
+  const visBottom=Math.min(b.bottom, vv.offsetTop+vv.height);
+  if(visBottom >= b.bottom-1) return; // keyboard isn't over the map
+  const visTop=Math.max(b.top, vv.offsetTop, barEl.getBoundingClientRect().bottom);
+  tip.style.bottom=(b.bottom-visBottom+8)+"px";
+  tip.style.maxHeight=Math.max(80, visBottom-visTop-16)+"px";
+  // keep the field itself in view inside the (now shorter) sheet
+  const fr=f.getBoundingClientRect(), tr=tip.getBoundingClientRect();
+  if(fr.bottom>tr.bottom-8) tip.scrollTop+=fr.bottom-tr.bottom+8;
+  else if(fr.top<tr.top+8) tip.scrollTop-=tr.top+8-fr.top;
+}
+if(window.visualViewport){
+  visualViewport.addEventListener("resize", placeTip);
+  visualViewport.addEventListener("scroll", placeTip);
+}
+// activeElement is only updated after focusout, so wait a frame
+tip.addEventListener("focusin", ()=>requestAnimationFrame(placeTip));
+tip.addEventListener("focusout", ()=>requestAnimationFrame(placeTip));
 
 /* ---------- search & filters ---------- */
 const cur = () => document.getElementById("q").value.trim().toLowerCase();
